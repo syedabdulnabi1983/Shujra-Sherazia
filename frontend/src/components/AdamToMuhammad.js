@@ -6,7 +6,7 @@ import {
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
-import axios from 'axios';
+import api from '../utils/api';
 import * as d3 from 'd3';
 
 function AdamToMuhammad({ user }) {
@@ -26,10 +26,9 @@ function AdamToMuhammad({ user }) {
   const token = localStorage.getItem('token');
   const isAdmin = user && user.role === 'admin';
 
-  // ─── Load data ───
   const loadChain = useCallback(async () => {
     try {
-      const res = await axios.get('/api/prophets');
+      const res = await api.get('/api/prophets');
       setChain(res.data);
     } catch (err) {
       console.error(err);
@@ -40,14 +39,12 @@ function AdamToMuhammad({ user }) {
 
   useEffect(() => { loadChain(); }, [loadChain]);
 
-  // Helper: father name
   const getFatherName = (node) => {
     if (!node?.parent_id) return null;
     const father = chain.find(n => n.id === node.parent_id);
     return father ? father.name : null;
   };
 
-  // ─── Admin handlers ───
   const handleAddAfter = (node) => {
     setNewData({
       name: '',
@@ -72,7 +69,7 @@ function AdamToMuhammad({ user }) {
   const handleDelete = async (node) => {
     if (!window.confirm(`Delete ${node.name}?`)) return;
     try {
-      await axios.delete(`/api/prophets/${node.id}`, { headers: { 'x-auth-token': token } });
+      await api.delete(`/api/prophets/${node.id}`, { headers: { 'x-auth-token': token } });
       loadChain();
     } catch (err) { alert('Delete failed'); }
   };
@@ -83,7 +80,7 @@ function AdamToMuhammad({ user }) {
       return;
     }
     try {
-      await axios.post('/api/prophets', newData, { headers: { 'x-auth-token': token } });
+      await api.post('/api/prophets', newData, { headers: { 'x-auth-token': token } });
       setOpen(false);
       loadChain();
     } catch (err) { alert(err.response?.data?.msg || 'Add failed'); }
@@ -91,21 +88,21 @@ function AdamToMuhammad({ user }) {
 
   const handleEditSubmit = async () => {
     try {
-      await axios.put(`/api/prophets/${editingNode.id}`, editData, { headers: { 'x-auth-token': token } });
+      await api.put(`/api/prophets/${editingNode.id}`, editData, { headers: { 'x-auth-token': token } });
       setEditOpen(false);
       loadChain();
     } catch (err) { alert('Update failed'); }
   };
 
-  // ─── Snake layout (5 per row), zoom, scroll ───
+  // ─── Snake layout (5 per row), zoom support, father name, no connectors ───
   const drawSnake = useCallback(() => {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
     if (chain.length === 0) return;
 
-    const boxW = 200;          // ✅ chhota box
-    const boxH = 140;          // ✅ height kam
+    const boxW = 200;
+    const boxH = 140;
     const gapX = 30;
     const gapY = 50;
     const nodesPerRow = 5;
@@ -124,10 +121,8 @@ function AdamToMuhammad({ user }) {
     const contentWidth = Math.min(chain.length, nodesPerRow) * (boxW + gapX) - gapX + padding * 2;
     const contentHeight = (maxRow + 1) * (boxH + gapY) - gapY + padding * 2;
 
-    const availWidth = contentWidth;   // full width, scroll handles horizontal overflow if needed
-    const availHeight = Math.max(contentHeight, 500); // minimum 500px
+    const availHeight = Math.max(contentHeight, 500);
 
-    // Apply zoom
     const scaledWidth = contentWidth * zoom;
     const scaledHeight = contentHeight * zoom;
 
@@ -137,12 +132,10 @@ function AdamToMuhammad({ user }) {
     const g = svg.append('g')
       .attr('transform', `translate(${padding * zoom}, ${padding * zoom}) scale(${zoom})`);
 
-    // Nodes
     chain.forEach((node, i) => {
       const { x, y } = positions[i];
       const gNode = g.append('g').attr('class', 'node').attr('transform', `translate(${x}, ${y})`);
 
-      // Card background
       gNode.append('rect')
         .attr('width', boxW).attr('height', boxH)
         .attr('rx', 10).attr('ry', 10)
@@ -154,7 +147,6 @@ function AdamToMuhammad({ user }) {
         .attr('width', boxW).attr('height', 5).attr('rx', 2)
         .attr('fill', '#2E7D32');
 
-      // Text with father name
       const fatherName = getFatherName(node);
       const fatherLine = fatherName ? `<br/><span style="font-size:9px;color:#1565C0;">bin ${fatherName}</span>` : '';
 
@@ -173,10 +165,8 @@ function AdamToMuhammad({ user }) {
         .style('overflow', 'hidden')
         .html(`<b>${node.name}</b>${fatherLine}<br/><span style="font-size:9px;color:#555;">Gen: ${node.generation_number}</span>${node.info ? `<br/><span style="font-size:9px;color:#777;">${node.info}</span>` : ''}`);
 
-      // Admin buttons
       if (isAdmin) {
         const btnY = boxH - 25;
-        // Add child button
         gNode.append('g')
           .attr('transform', `translate(${boxW - 36}, ${btnY})`)
           .attr('cursor', 'pointer')
@@ -192,7 +182,6 @@ function AdamToMuhammad({ user }) {
           .attr('fill', '#2E7D32')
           .text('+');
 
-        // Edit button
         gNode.append('g')
           .attr('transform', `translate(${boxW - 68}, ${btnY})`)
           .attr('cursor', 'pointer')
@@ -208,7 +197,6 @@ function AdamToMuhammad({ user }) {
           .attr('fill', '#1565C0')
           .text('✎');
 
-        // Delete button
         gNode.append('g')
           .attr('transform', `translate(${boxW - 100}, ${btnY})`)
           .attr('cursor', 'pointer')
@@ -232,9 +220,8 @@ function AdamToMuhammad({ user }) {
     else if (!loading) d3.select(svgRef.current).selectAll('*').remove();
   }, [chain, drawSnake, loading]);
 
-  // ─── Zoom handlers (working) ───
-  const zoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
-  const zoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.4));
+  const zoomIn = () => setZoom(z => Math.min(z + 0.25, 3));
+  const zoomOut = () => setZoom(z => Math.max(z - 0.25, 0.4));
   const zoomReset = () => setZoom(1);
 
   if (loading) return <Typography sx={{ textAlign: 'center', mt: 4 }}>Loading...</Typography>;
@@ -251,12 +238,10 @@ function AdamToMuhammad({ user }) {
         </Typography>
       )}
 
-      {/* ✅ Container with vertical scroll */}
       <div ref={containerRef} style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
         <svg ref={svgRef} style={{ display: 'block', width: '100%', minHeight: '100%' }} />
       </div>
 
-      {/* ✅ Control bar with zoom buttons */}
       <div className="control-bar">
         <button onClick={zoomOut} title="Zoom Out"><ZoomOutIcon fontSize="inherit" /></button>
         <button onClick={zoomReset} title="Reset Zoom"><CenterFocusStrongIcon fontSize="inherit" /></button>
@@ -264,7 +249,6 @@ function AdamToMuhammad({ user }) {
         {isAdmin && <button onClick={() => handleAddAfter(chain[0] || {})} title="Add First">+ Add</button>}
       </div>
 
-      {/* Add Dialog */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ bgcolor: '#2E7D32', color: 'white' }}>Add Prophet / Ancestor</DialogTitle>
         <DialogContent>
@@ -279,7 +263,6 @@ function AdamToMuhammad({ user }) {
         </DialogActions>
       </Dialog>
 
-      {/* Edit Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ bgcolor: '#1565C0', color: 'white' }}>Edit</DialogTitle>
         <DialogContent>

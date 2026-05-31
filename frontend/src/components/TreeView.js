@@ -7,10 +7,8 @@ import {
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
-import axios from 'axios';
+import api from '../utils/api';
 import * as d3 from 'd3';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 
 const emptyMember = {
   name: '',
@@ -27,7 +25,7 @@ const emptyMember = {
   is_alive: true,
 };
 
-// Static pages HTML for print / PDF
+// Static pages HTML for print
 const adamToMuhammadHTML = `
   <div class="print-page" style="font-family: 'Poppins', sans-serif; padding: 20px;">
     <h2>Shajra Hazrat Adam (A.S) to Hazrat Muhammad (S.A.W)</h2>
@@ -109,7 +107,6 @@ function TreeView({ user }) {
   const zoomOut = () => d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 0.7);
   const zoomReset = () => d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.transform, d3.zoomIdentity);
 
-  // ✅ Preload photo when details popup opens
   const openDetails = useCallback((member) => {
     if (canEditDelete) return;
     setDetailsMember(member);
@@ -165,7 +162,7 @@ function TreeView({ user }) {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await axios.get('/api/tree');
+      const res = await api.get('/api/tree');
       const nodes = res.data;
       const processed = nodes.map(n => ({
         ...n,
@@ -425,7 +422,7 @@ function TreeView({ user }) {
     fd.append('info', newMember.info);
     if (newMember.photo) fd.append('photo', newMember.photo);
     try {
-      await axios.post('/api/tree', fd, { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } });
+      await api.post('/api/tree', fd, { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } });
       setOpen(false);
       loadData();
     } catch (err) { alert(err.response?.data?.msg || 'Failed to add'); }
@@ -447,7 +444,7 @@ function TreeView({ user }) {
     fd.append('info', editData.info);
     if (editData.photo) fd.append('photo', editData.photo);
     try {
-      await axios.put(`/api/tree/${editingMember.id}`, fd, { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } });
+      await api.put(`/api/tree/${editingMember.id}`, fd, { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } });
       setEditOpen(false);
       loadData();
     } catch (err) { alert(err.response?.data?.msg || 'Failed to update'); }
@@ -456,15 +453,15 @@ function TreeView({ user }) {
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Kya aap "${name}" ko delete karna chahte hain?`)) return;
     try {
-      await axios.delete(`/api/tree/${id}`, { headers: { 'x-auth-token': token } });
+      await api.delete(`/api/tree/${id}`, { headers: { 'x-auth-token': token } });
       setPopupMember(null);
       loadData();
     } catch (err) { alert(err.response?.data?.msg || 'Delete failed'); }
   };
 
-  // Helper to build combined HTML for print/PDF
-  const buildPrintHTML = useCallback(() => {
-    if (!printMember) return '';
+  const handlePrint = useCallback(() => {
+    setPrintDialogOpen(false);
+    if (!printMember) return;
 
     const memberId = printMember.id;
     const fatherId = printMember.parent_id;
@@ -519,15 +516,6 @@ function TreeView({ user }) {
     if (printOptions.history) html += historyHTML;
     if (printOptions.tree) html += treeHTML;
 
-    return html;
-  }, [printMember, members, printOptions, getGenerationText]);
-
-  // 🖨️ Print handler (shows browser print dialog)
-  const handlePrint = useCallback(() => {
-    setPrintDialogOpen(false);
-    const html = buildPrintHTML();
-    if (!html) return;
-
     const container = document.getElementById('print-container');
     if (container) {
       container.style.display = 'block';
@@ -539,55 +527,7 @@ function TreeView({ user }) {
         }, { once: true });
       });
     }
-  }, [buildPrintHTML]);
-
-  // 📥 Download PDF handler (generates PDF using html2canvas + jsPDF)
-  const handleDownloadPDF = useCallback(async () => {
-    setPrintDialogOpen(false);
-    const html = buildPrintHTML();
-    if (!html) return;
-
-    const container = document.getElementById('print-container');
-    if (!container) return;
-
-    container.style.display = 'block';
-    container.innerHTML = html;
-
-    // Wait for images to load (if any) then capture
-    setTimeout(async () => {
-      try {
-        const canvas = await html2canvas(container, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-        });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210; // A4 width in mm
-        const pageHeight = 297; // A4 height
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        pdf.save(`FamilyTree-${printMember?.name || 'member'}.pdf`);
-      } catch (err) {
-        console.error('PDF generation failed:', err);
-        alert('PDF download failed. Please try again.');
-      } finally {
-        container.style.display = 'none';
-      }
-    }, 500); // small delay to ensure rendering
-  }, [buildPrintHTML, printMember]);
+  }, [printMember, members, printOptions, getGenerationText]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -715,7 +655,6 @@ function TreeView({ user }) {
         </DialogActions>
       </Dialog>
 
-      {/* Print Options Dialog with two separate buttons */}
       <Dialog open={printDialogOpen} onClose={() => setPrintDialogOpen(false)}>
         <DialogTitle>Print / Download Options</DialogTitle>
         <DialogContent>
@@ -738,8 +677,7 @@ function TreeView({ user }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPrintDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handlePrint}>🖨️ Print</Button>
-          <Button variant="contained" onClick={handleDownloadPDF}>📥 Download PDF</Button>
+          <Button variant="contained" onClick={handlePrint}>Print / Download PDF</Button>
         </DialogActions>
       </Dialog>
     </div>
