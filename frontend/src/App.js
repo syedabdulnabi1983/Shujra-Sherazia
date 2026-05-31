@@ -1,230 +1,140 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import TreeView from './components/TreeView';
+import Login from './components/Login';
+import Register from './components/Register';
+import RegisterAdmin from './components/RegisterAdmin';
+import AdminPanel from './components/AdminPanel';
+import History from './components/History';
+import AdamToMuhammad from './components/AdamToMuhammad';
+import AliToSherazi from './components/AliToSherazi';
+import Thanks from './components/Thanks';
+import Contact from './components/Contact';
+import setAuthToken from './utils/setAuthToken';
+import { jwtDecode } from 'jwt-decode';
 
-axios.defaults.baseURL = 'http://localhost:5001/api';
-axios.defaults.withCredentials = true;
-
-const inputStyle = {
-    width: '100%',
-    padding: '12px',
-    marginBottom: '14px',
-    border: '1px solid #ddd',
-    borderRadius: '5px',
+const pageTitles = {
+  '/': 'Family Tree',
+  '/history': 'History',
+  '/adam-to-muhammad': 'Adam (A.S) to Muhammad (S.A.W)',
+  '/ali-to-sherazi': 'Hazrat Ali (A.S) to Sherazi Sahib',
+  '/thanks': 'Special Thanks',
+  '/contact': 'Contact Us',
+  '/login': 'Login',
+  '/register': 'Register',
+  '/register-admin': 'Admin Registration',
+  '/admin': 'Admin Panel',
 };
 
-const primaryButtonStyle = {
-    width: '100%',
-    padding: '12px',
-    background: '#667eea',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    fontSize: '16px',
-};
+function AppContent() {
+  const location = useLocation();
+  const [user, setUser] = useState(null);
 
-const secondaryButtonStyle = {
-    width: '100%',
-    marginTop: '12px',
-    padding: '10px',
-    background: 'white',
-    color: '#667eea',
-    border: '1px solid #667eea',
-    borderRadius: '5px',
-    cursor: 'pointer',
-};
-
-function TreeViewWrapper() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        async function checkAuth() {
-            try {
-                const res = await axios.get('/auth/me');
-                if (res.data) {
-                    setIsLoggedIn(true);
-                    setUser(res.data);
-                    localStorage.setItem('role', res.data.role);
-                    localStorage.setItem('user', JSON.stringify(res.data));
-                }
-            } catch (err) {
-                setIsLoggedIn(false);
-                navigate('/login');
-            } finally {
-                setLoading(false);
-            }
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        if (decoded.exp * 1000 < Date.now()) {
+          localStorage.removeItem('token');
+        } else {
+          setUser({ id: decoded.id, email: decoded.email, role: decoded.role, is_master: decoded.is_master });
+          setAuthToken(token);
         }
-
-        checkAuth();
-    }, [navigate]);
-
-    const handleLogout = async () => {
-        await axios.post('/auth/logout');
-        setIsLoggedIn(false);
-        setUser(null);
-        localStorage.clear();
-        navigate('/login');
-    };
-
-    if (loading) {
-        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading...</div>;
+      } catch (e) {
+        localStorage.removeItem('token');
+      }
     }
+  }, []);
 
-    if (!isLoggedIn) {
-        return <Navigate to="/login" />;
-    }
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    window.location.href = '/';
+  };
 
-    return <TreeView user={user} onLogout={handleLogout} />;
-}
+  const currentTitle = pageTitles[location.pathname] || 'Family Tree';
+  const isAdmin = user && user.role === 'admin';
 
-function AuthShell({ children }) {
-    return (
-        <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '100vh',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '24px',
-        }}>
-            {children}
+  return (
+    <div className="app-shell">
+      {/* Bismillah Header */}
+      <div className="bismillah-header">
+        <h2>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</h2>
+      </div>
+
+      <nav className="navbar-custom">
+        <div className="navbar-inner">
+          <Link to="/" className="navbar-brand">
+            <svg width="34" height="34" viewBox="0 0 36 36" className="brand-logo">
+              <circle cx="18" cy="18" r="16" fill="none" stroke="#FDD835" strokeWidth="2.5"/>
+              <path d="M18 3 L18 33 M18 3 C10 10 10 26 18 33 M18 3 C26 10 26 26 18 33" fill="none" stroke="#FDD835" strokeWidth="2"/>
+              <circle cx="18" cy="18" r="5" fill="#FDD835"/>
+            </svg>
+            <span className="brand-text">Sherazia</span>
+          </Link>
+
+          <div className="navbar-links">
+            <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Tree</Link>
+            <Link to="/history" className={`nav-link ${location.pathname === '/history' ? 'active' : ''}`}>History</Link>
+            <Link to="/adam-to-muhammad" className={`nav-link ${location.pathname === '/adam-to-muhammad' ? 'active' : ''}`}>Adam to Muhammad</Link>
+            <Link to="/ali-to-sherazi" className={`nav-link ${location.pathname === '/ali-to-sherazi' ? 'active' : ''}`}>Ali to Sherazi</Link>
+            <Link to="/thanks" className={`nav-link ${location.pathname === '/thanks' ? 'active' : ''}`}>Thanks</Link>
+            <Link to="/contact" className={`nav-link ${location.pathname === '/contact' ? 'active' : ''}`}>Contact</Link>
+            {isAdmin && <Link to="/admin" className={`nav-link admin-link ${location.pathname === '/admin' ? 'active' : ''}`}>Admin</Link>}
+          </div>
+
+          <div className="navbar-user">
+            {!user ? (
+              <>
+                <Link to="/login" className="nav-link">Login</Link>
+                <Link to="/register" className="nav-link">Register</Link>
+                {/* ✅ Admin Registration Link added */}
+                <Link to="/register-admin" className="nav-link" style={{ border: '1px solid #FDD835', color: '#FDD835' }}>Admin Registration</Link>
+              </>
+            ) : (
+              <div className="user-menu">
+                <span className="user-email">{user.email} ({user.role})</span>
+                <button onClick={logout} className="logout-btn">Logout</button>
+              </div>
+            )}
+          </div>
         </div>
-    );
-}
+      </nav>
 
-function LoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
+      <div className="page-heading">
+        <h1>{currentTitle}</h1>
+      </div>
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-
-        try {
-            const res = await axios.post('/auth/login', { email, password });
-            if (res.data.success) {
-                localStorage.setItem('token', res.data.token);
-                localStorage.setItem('role', res.data.user.role);
-                localStorage.setItem('user', JSON.stringify(res.data.user));
-                navigate('/');
-            }
-        } catch (err) {
-            setError(err.response?.data?.error || 'Login failed');
-        }
-    };
-
-    return (
-        <AuthShell>
-            <form onSubmit={handleSubmit} style={{
-                background: 'white',
-                padding: '40px',
-                borderRadius: '10px',
-                width: '350px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-            }}>
-                <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>Shujra Sherazia</h2>
-                {error && <p style={{ color: 'red', textAlign: 'center', marginBottom: '15px' }}>{error}</p>}
-
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={inputStyle}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={inputStyle}
-                    required
-                />
-
-                <button type="submit" style={primaryButtonStyle}>Login</button>
-                <button type="button" onClick={() => navigate('/register')} style={secondaryButtonStyle}>
-                    Member Registration
-                </button>
-            </form>
-        </AuthShell>
-    );
-}
-
-function RegisterPage() {
-    const [form, setForm] = useState({
-        name: '',
-        email: '',
-        password: '',
-        repeatPassword: '',
-        code: '',
-    });
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const navigate = useNavigate();
-
-    const handleChange = (field, value) => {
-        setForm({ ...form, [field]: value });
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.post('/auth/register', form);
-            setSuccess('Registration successful. Ab login kar sakte hain.');
-            window.setTimeout(() => navigate('/login'), 900);
-        } catch (err) {
-            setError(err.response?.data?.error || 'Registration failed');
-        }
-    };
-
-    return (
-        <AuthShell>
-            <form onSubmit={handleSubmit} style={{
-                background: 'white',
-                padding: '36px',
-                borderRadius: '10px',
-                width: '390px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-            }}>
-                <h2 style={{ textAlign: 'center', marginBottom: '24px', color: '#333' }}>Member Registration</h2>
-                {error && <p style={{ color: 'red', textAlign: 'center', marginBottom: '15px' }}>{error}</p>}
-                {success && <p style={{ color: 'green', textAlign: 'center', marginBottom: '15px' }}>{success}</p>}
-
-                <input type="text" placeholder="Name" value={form.name} onChange={(e) => handleChange('name', e.target.value)} style={inputStyle} required />
-                <input type="email" placeholder="User ID / Email" value={form.email} onChange={(e) => handleChange('email', e.target.value)} style={inputStyle} required />
-                <input type="password" placeholder="Password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} style={inputStyle} required />
-                <input type="password" placeholder="Repeat Password" value={form.repeatPassword} onChange={(e) => handleChange('repeatPassword', e.target.value)} style={inputStyle} required />
-                <input type="text" placeholder="Registration Code" value={form.code} onChange={(e) => handleChange('code', e.target.value)} style={inputStyle} required />
-
-                <button type="submit" style={primaryButtonStyle}>Register</button>
-                <button type="button" onClick={() => navigate('/login')} style={secondaryButtonStyle}>Back to Login</button>
-            </form>
-        </AuthShell>
-    );
+      <div className="main-content">
+        <Routes>
+          <Route path="/" element={<TreeView user={user} />} />
+          <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/" />} />
+          <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+          <Route path="/register-admin" element={!user ? <RegisterAdmin /> : <Navigate to="/" />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/adam-to-muhammad" element={<AdamToMuhammad user={user} />} />
+          <Route path="/ali-to-sherazi" element={<AliToSherazi user={user} />} />
+          <Route path="/thanks" element={<Thanks />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/admin" element={user && user.role === 'admin' ? <AdminPanel user={user} /> : <Navigate to="/" />} />
+        </Routes>
+      </div>
+    </div>
+  );
 }
 
 function App() {
-    return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/" element={<TreeViewWrapper />} />
-                <Route path="/tree/:khandanId" element={<TreeViewWrapper />} />
-            </Routes>
-        </BrowserRouter>
-    );
+  return (
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      <AppContent />
+    </Router>
+  );
 }
 
 export default App;

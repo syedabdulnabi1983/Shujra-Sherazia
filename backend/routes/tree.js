@@ -1,236 +1,187 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const pool = require('../db');
-
 const router = express.Router();
+const pool = require('../db');
+const auth = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
 
-function getToken(req) {
-    const authHeader = req.headers.authorization || '';
-    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-    return req.cookies.token || bearerToken;
-}
+const storage = multer.diskStorage({
+  destination: 'uploads/',
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
+});
+const upload = multer({ storage });
 
-const isAuth = (req, res, next) => {
-    const token = getToken(req);
+const toNull = (val) => (val && val !== '' ? val : null);
 
-    if (!token) {
-        return res.status(401).json({ error: 'Unauthorized!' });
-    }
-
-    try {
-        req.user = jwt.verify(token, process.env.JWT_SECRET);
-        next();
-    } catch (err) {
-        res.status(401).json({ error: 'Invalid token!' });
-    }
+// ✅ Fixed yearToDate – rejects any all‑zero string like "0000", "0", "00", etc.
+const yearToDate = (val) => {
+  if (!val || typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (trimmed === '' || /^0+$/.test(trimmed)) return null;   // "0", "00", "0000" etc.
+  if (/^\d{4}$/.test(trimmed)) {
+    return `${trimmed}-01-01`;
+  }
+  return null;
 };
 
-const isAdmin = (req, res, next) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required!' });
-    }
-
-    next();
-};
-
-router.get('/khandans', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM khandan ORDER BY created_at DESC');
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// GET tree with is_alive
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        n.*,
+        f.name AS father_name_db,
+        s.name AS spouse_name_db,
+        s.id AS spouse_node_id,
+        n.is_alive,
+        n.father_name,
+        n.mother_name,
+        n.wife_name,
+        n.urdu_name,
+        n.info,
+        n.photo,
+        n.birth_date,
+        n.death_date
+      FROM tree_nodes n
+      LEFT JOIN tree_nodes f ON n.parent_id = f.id
+      LEFT JOIN tree_nodes s ON n.spouse_id = s.id
+      ORDER BY n.id
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
 });
 
-router.post('/khandan', isAuth, isAdmin, async (req, res) => {
-    try {
-        const khandanName = (req.body.khandan_name || '').trim();
+// POST add node
+router.post('/', auth, upload.single('photo'), async (req, res) => {
+  if (req.user.role !== 'member' && req.user.role !== 'admin') {
+    return res.status(403).json({ msg: 'Access denied' });
+  }
 
-        if (!khandanName) {
-            return res.status(422).json({ error: 'Khandan name is required' });
-        }
+  const name = req.body.name;
+  const parent_id = toNull(req.body.parent_id) ? parseInt(req.body.parent_id) : null;
+  const spouse_id = toNull(req.body.spouse_id) ? parseInt(req.body.spouse_id) : null;
+  const birth_date = yearToDate(req.body.birth_date);
+  const death_date = yearToDate(req.body.death_date);
+  const father_name = toNull(req.body.father_name);
+  const mother_name = toNull(req.body.mother_name);
+  const wife_name = toNull(req.body.wife_name);
+  const urdu_name = toNull(req.body.urdu_name);
+  const info = toNull(req.body.info);
+  const photo = req.file ? req.file.filename : null;
 
-        const countResult = await pool.query('SELECT COUNT(*) FROM khandan');
-        const count = Number.parseInt(countResult.rows[0].count, 10) + 1;
-        const khandanCode = 'KHD' + String(count).padStart(4, '0');
+  let is_alive;
+  if (req.body.is_alive !== undefined) {
+    is_alive = req.body.is_alive === 'true' || req.body.is_alive === true;
+  } else {
+    is_alive = !death_date;
+  }
+  const final_death_date = is_alive ? null : death_date;
 
-        const result = await pool.query(
-            'INSERT INTO khandan (khandan_code, khandan_name, created_by) VALUES ($1, $2, $3) RETURNING *',
-            [khandanCode, khandanName, req.user.id]
-        );
+  if (!name) return res.status(400).json({ msg: 'Name is required' });
 
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+  try {
+    const result = await pool.query(
+      `INSERT INTO tree_nodes (name, parent_id, spouse_id, birth_date, death_date, father_name, mother_name, wife_name, urdu_name, info, photo, added_by, is_alive)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+      [name, parent_id, spouse_id, birth_date, final_death_date, father_name, mother_name, wife_name, urdu_name, info, photo, req.user.id, is_alive]
+    );
+
+    if (spouse_id) {
+      await pool.query('UPDATE tree_nodes SET spouse_id = $1 WHERE id = $2', [result.rows[0].id, spouse_id]);
     }
+
+    await pool.query('INSERT INTO audit_logs (user_id, action, description, ip_address) VALUES ($1,$2,$3,$4)',
+      [req.user.id, 'add_node', `Added: ${name}`, req.ip]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Database error' });
+  }
 });
 
-router.get('/tree/:khandan_id', async (req, res) => {
-    try {
-        const result = await pool.query(
-            `SELECT id, khandan_id, name, gender, parent_id, spouse_id,
-                    father_name, mother_name, spouse_name,
-                    birth_year, death_year, remarks, is_alive,
-                    created_by, created_at, updated_at
-             FROM members
-             WHERE khandan_id = $1
-             ORDER BY id`,
-            [req.params.khandan_id]
-        );
+// PUT update node
+router.put('/:id', auth, upload.single('photo'), async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Admin only' });
 
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+  const { id } = req.params;
+  const name = req.body.name;
+  const parent_id = toNull(req.body.parent_id) ? parseInt(req.body.parent_id) : null;
+  const spouse_id = toNull(req.body.spouse_id) ? parseInt(req.body.spouse_id) : null;
+  const birth_date = yearToDate(req.body.birth_date);
+  const death_date = yearToDate(req.body.death_date);
+  const father_name = toNull(req.body.father_name);
+  const mother_name = toNull(req.body.mother_name);
+  const wife_name = toNull(req.body.wife_name);
+  const urdu_name = toNull(req.body.urdu_name);
+  const info = toNull(req.body.info);
+  const photo = req.file ? req.file.filename : undefined;
+
+  let is_alive;
+  if (req.body.is_alive !== undefined) {
+    is_alive = req.body.is_alive === 'true' || req.body.is_alive === true;
+  } else {
+    is_alive = !death_date;
+  }
+  const final_death_date = is_alive ? null : death_date;
+
+  if (!name) return res.status(400).json({ msg: 'Name is required' });
+
+  try {
+    let query = `UPDATE tree_nodes SET name=$1, parent_id=$2, spouse_id=$3, birth_date=$4, death_date=$5,
+                 father_name=$6, mother_name=$7, wife_name=$8, urdu_name=$9, info=$10, is_alive=$11`;
+    const values = [name, parent_id, spouse_id, birth_date, final_death_date, father_name, mother_name, wife_name, urdu_name, info, is_alive];
+
+    if (photo) {
+      query += ', photo=$12 WHERE id=$13 RETURNING *';
+      values.push(photo, id);
+    } else {
+      query += ' WHERE id=$12 RETURNING *';
+      values.push(id);
     }
+
+    const result = await pool.query(query, values);
+    if (result.rowCount === 0) return res.status(404).json({ msg: 'Node not found' });
+
+    if (spouse_id) {
+      await pool.query('UPDATE tree_nodes SET spouse_id = $1 WHERE id = $2', [id, spouse_id]);
+    }
+
+    await pool.query('INSERT INTO audit_logs (user_id, action, description, ip_address) VALUES ($1,$2,$3,$4)',
+      [req.user.id, 'update_node', `Updated node ${id}`, req.ip]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Database error' });
+  }
 });
 
-router.post('/member', isAuth, async (req, res) => {
-    try {
-        const {
-            khandan_id,
-            name,
-            gender,
-            parent_id,
-            spouse_id,
-            spouse_name,
-            father_name,
-            mother_name,
-            birth_year,
-            death_year,
-            remarks,
-            is_alive,
-        } = req.body;
+// DELETE node
+router.delete('/:id', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Admin only' });
 
-        if (!khandan_id || !name || !String(name).trim()) {
-            return res.status(422).json({ error: 'Khandan and member name are required' });
-        }
+  const { id } = req.params;
+  try {
+    const node = await pool.query('SELECT name, spouse_id FROM tree_nodes WHERE id=$1', [id]);
+    if (node.rowCount === 0) return res.status(404).json({ msg: 'Node not found' });
 
-        const result = await pool.query(
-            `INSERT INTO members
-                (khandan_id, name, gender, parent_id, spouse_id, spouse_name, father_name, mother_name,
-                 birth_year, death_year, remarks, is_alive, created_by)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-             RETURNING *`,
-            [
-                khandan_id,
-                String(name).trim(),
-                gender || 'male',
-                parent_id || null,
-                spouse_id || null,
-                spouse_name || null,
-                father_name || null,
-                mother_name || null,
-                birth_year || null,
-                death_year || null,
-                remarks || null,
-                is_alive !== false,
-                req.user.id,
-            ]
-        );
-
-        if (spouse_id) {
-            await pool.query('UPDATE members SET spouse_id = $1 WHERE id = $2', [result.rows[0].id, spouse_id]);
-        }
-
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-router.put('/member/:id', isAuth, async (req, res) => {
-    try {
-        const {
-            name,
-            gender,
-            parent_id,
-            spouse_id,
-            spouse_name,
-            father_name,
-            mother_name,
-            birth_year,
-            death_year,
-            remarks,
-            is_alive,
-        } = req.body;
-
-        const result = await pool.query(
-            `UPDATE members
-             SET name = $1,
-                 gender = $2,
-                 parent_id = $3,
-                 spouse_id = $4,
-                 spouse_name = $5,
-                 father_name = $6,
-                 mother_name = $7,
-                 birth_year = $8,
-                 death_year = $9,
-                 remarks = $10,
-                 is_alive = $11,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $12
-             RETURNING *`,
-            [
-                String(name || '').trim(),
-                gender || 'male',
-                parent_id || null,
-                spouse_id || null,
-                spouse_name || null,
-                father_name || null,
-                mother_name || null,
-                birth_year || null,
-                death_year || null,
-                remarks || null,
-                is_alive !== false,
-                req.params.id,
-            ]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Member not found' });
-        }
-
-        if (spouse_id) {
-            await pool.query('UPDATE members SET spouse_id = $1 WHERE id = $2', [req.params.id, spouse_id]);
-        }
-
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-router.delete('/members/:id', isAuth, isAdmin, async (req, res) => {
-    const id = Number.parseInt(req.params.id, 10);
-
-    if (Number.isNaN(id)) {
-        return res.status(400).json({ success: false, message: 'Invalid member ID' });
+    if (node.rows[0].spouse_id) {
+      await pool.query('UPDATE tree_nodes SET spouse_id = NULL WHERE id = $1', [node.rows[0].spouse_id]);
     }
 
-    const client = await pool.connect();
+    await pool.query('DELETE FROM tree_nodes WHERE id=$1', [id]);
+    await pool.query('INSERT INTO audit_logs (user_id, action, description, ip_address) VALUES ($1,$2,$3,$4)',
+      [req.user.id, 'delete_node', `Deleted: ${node.rows[0].name}`, req.ip]);
 
-    try {
-        await client.query('BEGIN');
-
-        const memberCheck = await client.query('SELECT * FROM members WHERE id = $1', [id]);
-        if (memberCheck.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ success: false, message: 'Member not found' });
-        }
-
-        await client.query('UPDATE members SET spouse_id = NULL WHERE spouse_id = $1', [id]);
-        await client.query('UPDATE members SET parent_id = NULL WHERE parent_id = $1', [id]);
-        await client.query('DELETE FROM members WHERE id = $1', [id]);
-        await client.query('COMMIT');
-
-        res.json({ success: true, message: 'Member deleted successfully' });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.error('Delete error:', err);
-        res.status(500).json({ success: false, message: 'Server error' });
-    } finally {
-        client.release();
-    }
+    res.json({ msg: 'Node deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Database error' });
+  }
 });
 
 module.exports = router;
