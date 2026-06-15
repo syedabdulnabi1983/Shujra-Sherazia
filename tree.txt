@@ -1,0 +1,560 @@
+Shujra-Sherazia
+├── backend
+│   ├── middleware
+│   │   └── auth.js
+│   ├── routes
+│   │   ├── oracleJdk-26
+│   │   │   ├── bin
+│   │   │   │   ├── server
+│   │   │   │   │   ├── classes.jsa
+│   │   │   │   │   ├── classes_coh.jsa
+│   │   │   │   │   ├── classes_nocoops.jsa
+│   │   │   │   │   ├── classes_nocoops_coh.jsa
+│   │   │   │   │   └── jvm.dll
+│   │   │   │   ├── api-ms-win-core-console-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-console-l1-2-0.dll
+│   │   │   │   ├── api-ms-win-core-datetime-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-debug-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-errorhandling-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-fibers-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-fibers-l1-1-1.dll
+│   │   │   │   ├── api-ms-win-core-file-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-file-l1-2-0.dll
+│   │   │   │   ├── api-ms-win-core-file-l2-1-0.dll
+│   │   │   │   ├── api-ms-win-core-handle-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-heap-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-interlocked-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-kernel32-legacy-l1-1-1.dll
+│   │   │   │   ├── api-ms-win-core-libraryloader-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-localization-l1-2-0.dll
+│   │   │   │   ├── api-ms-win-core-memory-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-namedpipe-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-processenvironment-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-processthreads-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-processthreads-l1-1-1.dll
+│   │   │   │   ├── api-ms-win-core-profile-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-rtlsupport-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-string-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-synch-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-synch-l1-2-0.dll
+│   │   │   │   ├── api-ms-win-core-sysinfo-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-sysinfo-l1-2-0.dll
+│   │   │   │   ├── api-ms-win-core-timezone-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-core-util-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-conio-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-convert-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-environment-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-filesystem-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-heap-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-locale-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-math-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-multibyte-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-private-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-process-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-runtime-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-stdio-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-string-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-time-l1-1-0.dll
+│   │   │   │   ├── api-ms-win-crt-utility-l1-1-0.dll
+│   │   │   │   ├── attach.dll
+│   │   │   │   ├── awt.dll
+│   │   │   │   ├── dt_shmem.dll
+│   │   │   │   ├── dt_socket.dll
+│   │   │   │   ├── extnet.dll
+│   │   │   │   ├── fontmanager.dll
+│   │   │   │   ├── freetype.dll
+│   │   │   │   ├── instrument.dll
+│   │   │   │   ├── j2gss.dll
+│   │   │   │   ├── j2pcsc.dll
+│   │   │   │   ├── j2pkcs11.dll
+│   │   │   │   ├── jaas.dll
+│   │   │   │   ├── jabswitch.exe
+│   │   │   │   ├── jaccessinspector.exe
+│   │   │   │   ├── jaccesswalker.exe
+│   │   │   │   ├── jar.exe
+│   │   │   │   ├── jarsigner.exe
+│   │   │   │   ├── java.dll
+│   │   │   │   ├── java.exe
+│   │   │   │   ├── javaaccessbridge.dll
+│   │   │   │   ├── javac.exe
+│   │   │   │   ├── javadoc.exe
+│   │   │   │   ├── javajpeg.dll
+│   │   │   │   ├── javap.exe
+│   │   │   │   ├── javaw.exe
+│   │   │   │   ├── jawt.dll
+│   │   │   │   ├── jcmd.exe
+│   │   │   │   ├── jconsole.exe
+│   │   │   │   ├── jdb.exe
+│   │   │   │   ├── jdeprscan.exe
+│   │   │   │   ├── jdeps.exe
+│   │   │   │   ├── jdwp.dll
+│   │   │   │   ├── jfr.exe
+│   │   │   │   ├── jhsdb.exe
+│   │   │   │   ├── jimage.dll
+│   │   │   │   ├── jimage.exe
+│   │   │   │   ├── jinfo.exe
+│   │   │   │   ├── jli.dll
+│   │   │   │   ├── jlink.exe
+│   │   │   │   ├── jmap.exe
+│   │   │   │   ├── jmod.exe
+│   │   │   │   ├── jnativescan.exe
+│   │   │   │   ├── jpackage.dll
+│   │   │   │   ├── jpackage.exe
+│   │   │   │   ├── jps.exe
+│   │   │   │   ├── jshell.exe
+│   │   │   │   ├── jsound.dll
+│   │   │   │   ├── jstack.exe
+│   │   │   │   ├── jstat.exe
+│   │   │   │   ├── jstatd.exe
+│   │   │   │   ├── jsvml.dll
+│   │   │   │   ├── jwebserver.exe
+│   │   │   │   ├── keytool.exe
+│   │   │   │   ├── kinit.exe
+│   │   │   │   ├── klist.exe
+│   │   │   │   ├── ktab.exe
+│   │   │   │   ├── lcms.dll
+│   │   │   │   ├── management.dll
+│   │   │   │   ├── management_agent.dll
+│   │   │   │   ├── management_ext.dll
+│   │   │   │   ├── mlib_image.dll
+│   │   │   │   ├── msvcp140.dll
+│   │   │   │   ├── net.dll
+│   │   │   │   ├── nio.dll
+│   │   │   │   ├── prefs.dll
+│   │   │   │   ├── rmi.dll
+│   │   │   │   ├── rmiregistry.exe
+│   │   │   │   ├── saproc.dll
+│   │   │   │   ├── serialver.exe
+│   │   │   │   ├── splashscreen.dll
+│   │   │   │   ├── sspi_bridge.dll
+│   │   │   │   ├── sunmscapi.dll
+│   │   │   │   ├── syslookup.dll
+│   │   │   │   ├── ucrtbase.dll
+│   │   │   │   ├── vcruntime140.dll
+│   │   │   │   ├── vcruntime140_1.dll
+│   │   │   │   ├── verify.dll
+│   │   │   │   ├── w2k_lsa_auth.dll
+│   │   │   │   ├── windowsaccessbridge-64.dll
+│   │   │   │   └── zip.dll
+│   │   │   ├── conf
+│   │   │   │   ├── management
+│   │   │   │   │   ├── jmxremote.access
+│   │   │   │   │   ├── jmxremote.password.template
+│   │   │   │   │   └── management.properties
+│   │   │   │   ├── security
+│   │   │   │   │   ├── policy
+│   │   │   │   │   │   ├── limited
+│   │   │   │   │   │   │   ├── default_US_export.policy
+│   │   │   │   │   │   │   ├── default_local.policy
+│   │   │   │   │   │   │   └── exempt_local.policy
+│   │   │   │   │   │   ├── unlimited
+│   │   │   │   │   │   │   ├── default_US_export.policy
+│   │   │   │   │   │   │   └── default_local.policy
+│   │   │   │   │   │   └── README.txt
+│   │   │   │   │   └── java.security
+│   │   │   │   ├── jaxp-strict.properties.template
+│   │   │   │   ├── jaxp.properties
+│   │   │   │   ├── logging.properties
+│   │   │   │   ├── net.properties
+│   │   │   │   └── sound.properties
+│   │   │   ├── include
+│   │   │   │   ├── win32
+│   │   │   │   │   ├── bridge
+│   │   │   │   │   │   ├── AccessBridgeCallbacks.h
+│   │   │   │   │   │   ├── AccessBridgeCalls.h
+│   │   │   │   │   │   └── AccessBridgePackages.h
+│   │   │   │   │   ├── jawt_md.h
+│   │   │   │   │   └── jni_md.h
+│   │   │   │   ├── classfile_constants.h
+│   │   │   │   ├── jawt.h
+│   │   │   │   ├── jdwpTransport.h
+│   │   │   │   ├── jni.h
+│   │   │   │   ├── jvmti.h
+│   │   │   │   └── jvmticmlr.h
+│   │   │   ├── jmods
+│   │   │   │   ├── java.base.jmod
+│   │   │   │   ├── java.compiler.jmod
+│   │   │   │   ├── java.datatransfer.jmod
+│   │   │   │   ├── java.desktop.jmod
+│   │   │   │   ├── java.instrument.jmod
+│   │   │   │   ├── java.logging.jmod
+│   │   │   │   ├── java.management.jmod
+│   │   │   │   ├── java.management.rmi.jmod
+│   │   │   │   ├── java.naming.jmod
+│   │   │   │   ├── java.net.http.jmod
+│   │   │   │   ├── java.prefs.jmod
+│   │   │   │   ├── java.rmi.jmod
+│   │   │   │   ├── java.scripting.jmod
+│   │   │   │   ├── java.se.jmod
+│   │   │   │   ├── java.security.jgss.jmod
+│   │   │   │   ├── java.security.sasl.jmod
+│   │   │   │   ├── java.smartcardio.jmod
+│   │   │   │   ├── java.sql.jmod
+│   │   │   │   ├── java.sql.rowset.jmod
+│   │   │   │   ├── java.transaction.xa.jmod
+│   │   │   │   ├── java.xml.crypto.jmod
+│   │   │   │   ├── java.xml.jmod
+│   │   │   │   ├── jdk.accessibility.jmod
+│   │   │   │   ├── jdk.attach.jmod
+│   │   │   │   ├── jdk.charsets.jmod
+│   │   │   │   ├── jdk.compiler.jmod
+│   │   │   │   ├── jdk.crypto.cryptoki.jmod
+│   │   │   │   ├── jdk.crypto.ec.jmod
+│   │   │   │   ├── jdk.crypto.mscapi.jmod
+│   │   │   │   ├── jdk.dynalink.jmod
+│   │   │   │   ├── jdk.editpad.jmod
+│   │   │   │   ├── jdk.graal.compiler.jmod
+│   │   │   │   ├── jdk.graal.compiler.management.jmod
+│   │   │   │   ├── jdk.hotspot.agent.jmod
+│   │   │   │   ├── jdk.httpserver.jmod
+│   │   │   │   ├── jdk.incubator.vector.jmod
+│   │   │   │   ├── jdk.internal.ed.jmod
+│   │   │   │   ├── jdk.internal.jvmstat.jmod
+│   │   │   │   ├── jdk.internal.le.jmod
+│   │   │   │   ├── jdk.internal.md.jmod
+│   │   │   │   ├── jdk.internal.opt.jmod
+│   │   │   │   ├── jdk.internal.vm.ci.jmod
+│   │   │   │   ├── jdk.jartool.jmod
+│   │   │   │   ├── jdk.javadoc.jmod
+│   │   │   │   ├── jdk.jcmd.jmod
+│   │   │   │   ├── jdk.jconsole.jmod
+│   │   │   │   ├── jdk.jdeps.jmod
+│   │   │   │   ├── jdk.jdi.jmod
+│   │   │   │   ├── jdk.jdwp.agent.jmod
+│   │   │   │   ├── jdk.jfr.jmod
+│   │   │   │   ├── jdk.jlink.jmod
+│   │   │   │   ├── jdk.jpackage.jmod
+│   │   │   │   ├── jdk.jshell.jmod
+│   │   │   │   ├── jdk.jstatd.jmod
+│   │   │   │   ├── jdk.localedata.jmod
+│   │   │   │   ├── jdk.management.agent.jmod
+│   │   │   │   ├── jdk.management.jfr.jmod
+│   │   │   │   ├── jdk.management.jmod
+│   │   │   │   ├── jdk.naming.dns.jmod
+│   │   │   │   ├── jdk.naming.rmi.jmod
+│   │   │   │   ├── jdk.net.jmod
+│   │   │   │   ├── jdk.nio.mapmode.jmod
+│   │   │   │   ├── jdk.sctp.jmod
+│   │   │   │   ├── jdk.security.auth.jmod
+│   │   │   │   ├── jdk.security.jgss.jmod
+│   │   │   │   ├── jdk.unsupported.desktop.jmod
+│   │   │   │   ├── jdk.unsupported.jmod
+│   │   │   │   ├── jdk.xml.dom.jmod
+│   │   │   │   └── jdk.zipfs.jmod
+│   │   │   ├── legal
+│   │   │   │   ├── java.base
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   ├── c-libutl.md
+│   │   │   │   │   ├── cldr.md
+│   │   │   │   │   ├── icu.md
+│   │   │   │   │   ├── public_suffix.md
+│   │   │   │   │   ├── siphash.md
+│   │   │   │   │   ├── unicode.md
+│   │   │   │   │   ├── wepoll.md
+│   │   │   │   │   └── zlib.md
+│   │   │   │   ├── java.compiler
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.datatransfer
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.desktop
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   ├── colorimaging.md
+│   │   │   │   │   ├── freetype.md
+│   │   │   │   │   ├── giflib.md
+│   │   │   │   │   ├── harfbuzz.md
+│   │   │   │   │   ├── jpeg.md
+│   │   │   │   │   ├── lcms.md
+│   │   │   │   │   ├── libpng.md
+│   │   │   │   │   └── mesa3d.md
+│   │   │   │   ├── java.instrument
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.logging
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.management
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.management.rmi
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.naming
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.net.http
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.prefs
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.rmi
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.scripting
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.se
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.security.jgss
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.security.sasl
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.smartcardio
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.sql
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.sql.rowset
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.transaction.xa
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── java.xml
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   ├── bcel.md
+│   │   │   │   │   ├── dom.md
+│   │   │   │   │   ├── jcup.md
+│   │   │   │   │   ├── schema10part1.md
+│   │   │   │   │   ├── schema10part2.md
+│   │   │   │   │   ├── xalan.md
+│   │   │   │   │   ├── xerces.md
+│   │   │   │   │   ├── xhtml10.md
+│   │   │   │   │   ├── xhtml10schema.md
+│   │   │   │   │   ├── xhtml11.md
+│   │   │   │   │   ├── xhtml11schema.md
+│   │   │   │   │   ├── xmlspec.md
+│   │   │   │   │   └── xmlxsd.md
+│   │   │   │   ├── java.xml.crypto
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   └── santuario.md
+│   │   │   │   ├── jdk.accessibility
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.attach
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.charsets
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.compiler
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.crypto.cryptoki
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   ├── pkcs11cryptotoken.md
+│   │   │   │   │   └── pkcs11wrapper.md
+│   │   │   │   ├── jdk.crypto.ec
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.crypto.mscapi
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.dynalink
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   └── dynalink.md
+│   │   │   │   ├── jdk.editpad
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.graal.compiler
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.graal.compiler.management
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.hotspot.agent
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.httpserver
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.incubator.vector
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.internal.ed
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.internal.jvmstat
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.internal.le
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   └── jline.md
+│   │   │   │   ├── jdk.internal.md
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   └── commonmark.md
+│   │   │   │   ├── jdk.internal.opt
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   └── jopt-simple.md
+│   │   │   │   ├── jdk.internal.vm.ci
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jartool
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.javadoc
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   ├── dejavufonts.md
+│   │   │   │   │   ├── highlightjs.md
+│   │   │   │   │   ├── jquery.md
+│   │   │   │   │   └── jqueryUI.md
+│   │   │   │   ├── jdk.jcmd
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jconsole
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jdeps
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jdi
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jdwp.agent
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jfr
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jlink
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jpackage
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jshell
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.jstatd
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.localedata
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   ├── LICENSE
+│   │   │   │   │   ├── cldr.md
+│   │   │   │   │   └── thaidict.md
+│   │   │   │   ├── jdk.management
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.management.agent
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.management.jfr
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.naming.dns
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.naming.rmi
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.net
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.nio.mapmode
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.sctp
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.security.auth
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.security.jgss
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.unsupported
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.unsupported.desktop
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   ├── jdk.xml.dom
+│   │   │   │   │   ├── COPYRIGHT
+│   │   │   │   │   └── LICENSE
+│   │   │   │   └── jdk.zipfs
+│   │   │   │       ├── COPYRIGHT
+│   │   │   │       └── LICENSE
+│   │   │   ├── lib
+│   │   │   │   ├── jfr
+│   │   │   │   │   ├── default.jfc
+│   │   │   │   │   └── profile.jfc
+│   │   │   │   ├── security
+│   │   │   │   │   ├── blocked.certs
+│   │   │   │   │   ├── cacerts
+│   │   │   │   │   └── public_suffix_list.dat
+│   │   │   │   ├── classlist
+│   │   │   │   ├── ct.sym
+│   │   │   │   ├── fontconfig.bfc
+│   │   │   │   ├── fontconfig.properties.src
+│   │   │   │   ├── jawt.lib
+│   │   │   │   ├── jrt-fs.jar
+│   │   │   │   ├── jvm.cfg
+│   │   │   │   ├── jvm.lib
+│   │   │   │   ├── modules
+│   │   │   │   ├── psfont.properties.ja
+│   │   │   │   ├── psfontj2d.properties
+│   │   │   │   ├── src.zip
+│   │   │   │   ├── tzdb.dat
+│   │   │   │   └── tzmappings
+│   │   │   ├── LICENSE
+│   │   │   ├── README
+│   │   │   └── release
+│   │   ├── admin.js
+│   │   ├── aliSherazia.js
+│   │   ├── auth.js
+│   │   ├── prophets.js
+│   │   └── tree.js
+│   ├── uploads
+│   │   ├── 1780659282800.jpeg
+│   │   ├── 1780660355389.jpeg
+│   │   ├── 1780660905369.jpeg
+│   │   ├── 1780660951425.jpeg
+│   │   ├── 1780660999518.jpeg
+│   │   ├── 1780661052415.jpeg
+│   │   ├── 1780661216279.jpeg
+│   │   └── 1780661267470.jpeg
+│   ├── db.js
+│   ├── package-lock.json
+│   ├── package.json
+│   └── server.js
+├── frontend
+│   ├── public
+│   │   └── index.html
+│   ├── src
+│   │   ├── components
+│   │   │   ├── AdamToMuhammad.js
+│   │   │   ├── AdminPanel.js
+│   │   │   ├── AliToSherazi.js
+│   │   │   ├── Contact.js
+│   │   │   ├── History.js
+│   │   │   ├── Home.js
+│   │   │   ├── HomePage.js
+│   │   │   ├── Login.js
+│   │   │   ├── Register.js
+│   │   │   ├── RegisterAdmin.js
+│   │   │   ├── Thanks.js
+│   │   │   └── TreeView.js
+│   │   ├── utils
+│   │   │   └── setAuthToken.js
+│   │   ├── App.js
+│   │   └── index.js
+│   ├── package-lock.json
+│   └── package.json
+└── tree.txt

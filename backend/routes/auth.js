@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 
-// ─── Member Registration ───
+// Register member
 router.post('/register', async (req, res) => {
   const { name, email, login_id, password, re_password, secret_code } = req.body;
   if (password !== re_password) return res.status(400).json({ msg: 'Passwords do not match' });
@@ -31,7 +31,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// ─── Login (sends is_master) ───
+// Login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -53,7 +53,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// ─── Admin Registration (separate) ───
+// Register admin
 router.post('/register-admin', async (req, res) => {
   const { name, email, login_id, password, re_password, admin_code } = req.body;
   if (password !== re_password) return res.status(400).json({ msg: 'Passwords do not match' });
@@ -69,7 +69,7 @@ router.post('/register-admin', async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (name, email, login_id, password, role, is_master) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, name, email, role, is_master',
-      [name, email, login_id, hashed, 'admin', false]   // new admins are NOT master
+      [name, email, login_id, hashed, 'admin', false]
     );
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, is_master: user.is_master }, process.env.JWT_SECRET, { expiresIn: '8h' });

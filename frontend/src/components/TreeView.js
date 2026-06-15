@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Button, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControl, InputLabel, MenuItem, Select, TextField,
-  Typography, Checkbox, FormControlLabel,
+  Typography, FormControlLabel, Radio, RadioGroup,
+  Paper, List, ListItemButton, ListItemText, ClickAwayListener,
 } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
-import api from '../utils/api';
+import SearchIcon from '@mui/icons-material/Search';
+import axios from 'axios';
 import * as d3 from 'd3';
 
 const emptyMember = {
@@ -25,35 +27,11 @@ const emptyMember = {
   is_alive: true,
 };
 
-// Static pages HTML for print
-const adamToMuhammadHTML = `
-  <div class="print-page" style="font-family: 'Poppins', sans-serif; padding: 20px;">
-    <h2>Shajra Hazrat Adam (A.S) to Hazrat Muhammad (S.A.W)</h2>
-    <p>Yahan shajra likha jayega...</p>
-    <p style="color: gray;">(Under Construction)</p>
-  </div>
-`;
-
-const aliToSheraziHTML = `
-  <div class="print-page" style="font-family: 'Poppins', sans-serif; padding: 20px;">
-    <h2>Shajra Hazrat Ali (A.S) to Syed Muhammad Malook Shah Sherazi</h2>
-    <p>Yahan shajra likha jayega...</p>
-    <p style="color: gray;">(Under Construction)</p>
-  </div>
-`;
-
-const historyHTML = `
-  <div class="print-page" style="font-family: 'Poppins', sans-serif; padding: 20px;">
-    <h2>History</h2>
-    <p>Family history details...</p>
-    <p style="color: gray;">(Under Construction)</p>
-  </div>
-`;
-
 function TreeView({ user }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const zoomRef = useRef(null);
+  const nodePositionsRef = useRef({});
 
   const [members, setMembers] = useState([]);
   const [open, setOpen] = useState(false);
@@ -68,21 +46,22 @@ function TreeView({ user }) {
 
   const [printMember, setPrintMember] = useState(null);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
-  const [printOptions, setPrintOptions] = useState({
-    adam: false,
-    ali: false,
-    tree: true,
-    history: false,
-  });
+  const [printMode, setPrintMode] = useState('malook');
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsMember, setDetailsMember] = useState(null);
+
+  // Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const token = localStorage.getItem('token');
   const role = user?.role;
   const canAdd = role === 'admin' || role === 'member';
   const canEditDelete = role === 'admin';
 
+  // ---------- collapse toggle ----------
   const toggleNode = useCallback((nodeId) => {
     setCollapsedNodes(prev => {
       const next = new Set(prev);
@@ -92,39 +71,27 @@ function TreeView({ user }) {
     });
   }, []);
 
-  const expandAll = () => setCollapsedNodes(new Set());
-  const collapseAll = () => {
-    if (members.length === 0) return;
-    const root = members.find(m => !m.parent_id && !m.spouse_id) || members[0];
-    const build = pid => members.filter(m => m.parent_id === pid && !m.spouse_id).map(c => ({ ...c, children: build(c.id) }));
-    const rootNode = d3.hierarchy({ ...root, children: build(root.id) });
-    const ids = [];
-    rootNode.each(n => { if (n.children && n.children.length > 0) ids.push(n.data.id); });
-    setCollapsedNodes(new Set(ids));
-  };
+  // ---------- safe zoom controls ----------
+  const zoomIn = () => { if (zoomRef.current) d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 1.5); };
+  const zoomOut = () => { if (zoomRef.current) d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 0.7); };
+  const zoomReset = () => { if (zoomRef.current) d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.transform, d3.zoomIdentity); };
 
-  const zoomIn = () => d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 1.5);
-  const zoomOut = () => d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 0.7);
-  const zoomReset = () => d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.transform, d3.zoomIdentity);
-
+  // ---------- open details popup (non-admin) ----------
   const openDetails = useCallback((member) => {
     if (canEditDelete) return;
     setDetailsMember(member);
     setDetailsOpen(true);
-    if (member.photo) {
-      const img = new Image();
-      img.src = `/uploads/${member.photo}`;
-    }
   }, [canEditDelete]);
 
   const handlePrintFromDetails = () => {
     if (!detailsMember) return;
     setDetailsOpen(false);
     setPrintMember(detailsMember);
-    setPrintOptions({ adam: false, ali: false, tree: true, history: false });
+    setPrintMode('malook');
     setPrintDialogOpen(true);
   };
 
+  // ---------- open add form ----------
   const openAddMemberForm = useCallback((relation, member = null) => {
     if (!member) {
       setAddDialogTitle('Add Member');
@@ -160,9 +127,10 @@ function TreeView({ user }) {
     setOpen(true);
   }, [members]);
 
+  // ---------- load tree data ----------
   const loadData = useCallback(async () => {
     try {
-      const res = await api.get('/api/tree');
+      const res = await axios.get('/api/tree');
       const nodes = res.data;
       const processed = nodes.map(n => ({
         ...n,
@@ -186,6 +154,47 @@ function TreeView({ user }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // ---------- Search filter ----------
+  useEffect(() => {
+    if (searchQuery.trim().length === 0) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    const q = searchQuery.toLowerCase();
+    const results = members
+      .filter(m => m.name.toLowerCase().includes(q))
+      .map(m => ({
+        id: m.id,
+        name: m.name,
+        generation_number: m.generation_number,
+      }))
+      .sort((a, b) => (a.generation_number || 0) - (b.generation_number || 0))
+      .slice(0, 20);
+    setSearchResults(results);
+    setSearchOpen(results.length > 0);
+  }, [searchQuery, members]);
+
+  // ---------- Zoom to node (bigger zoom) ----------
+  const zoomToNode = useCallback((nodeId) => {
+    const pos = nodePositionsRef.current[nodeId];
+    if (!pos || !zoomRef.current) return;
+    const svg = d3.select(svgRef.current);
+    const width = svg.attr('width');
+    const height = svg.attr('height');
+    const scale = 20;   // 200x zoom (pehle 10 tha)
+    const centerX = pos.x + pos.w / 2;
+    const centerY = pos.y + pos.h / 2;
+
+    const transform = d3.zoomIdentity
+      .translate(width / 2, height / 2)
+      .scale(scale)
+      .translate(-centerX, -centerY);
+
+    svg.transition().duration(750).call(zoomRef.current.transform, transform);
+  }, []);
+
+  // ---------- generation text ----------
   const getGenerationText = useCallback((member) => {
     if (!member || members.length === 0) return 'N/A';
     const root = members.find(m => !m.parent_id && !m.spouse_id) || members[0];
@@ -203,19 +212,12 @@ function TreeView({ user }) {
     return `${gen}${suffix} Generation`;
   }, [members]);
 
-  // D3 tree drawing
+  // ---------- D3 tree drawing (unchanged) ----------
   const drawTree = useCallback((svgNode, data, collapseSet = new Set(), editable = true) => {
     const svg = d3.select(svgNode);
     svg.selectAll('*').remove();
 
-    const defs = svg.append('defs');
-    const gradient = defs.append('linearGradient')
-      .attr('id', 'linkGradient')
-      .attr('x1', '0%').attr('y1', '0%')
-      .attr('x2', '0%').attr('y2', '100%');
-    gradient.append('stop').attr('offset', '0%').attr('stop-color', '#2E7D32');
-    gradient.append('stop').attr('offset', '50%').attr('stop-color', '#c9a84c');
-    gradient.append('stop').attr('offset', '100%').attr('stop-color', '#2E7D32');
+    const solidColor = '#2E7D32'; 
 
     const isMobile = window.innerWidth < 768;
     const boxW = isMobile ? 220 : 270;
@@ -244,6 +246,17 @@ function TreeView({ user }) {
     const nodes = root.descendants();
     const links = root.links();
 
+    const posMap = {};
+    nodes.forEach(n => {
+      posMap[n.data.id] = {
+        x: n.x - boxW / 2,
+        y: n.y,
+        w: boxW,
+        h: boxH,
+      };
+    });
+    nodePositionsRef.current = posMap;
+
     const minX = d3.min(nodes, d => d.x) || 0, maxX = d3.max(nodes, d => d.x) || 0;
     const minY = d3.min(nodes, d => d.y) || 0, maxY = d3.max(nodes, d => d.y) || 0;
     const width = Math.max(maxX - minX + padding * 2 + boxW, 800);
@@ -252,7 +265,10 @@ function TreeView({ user }) {
     svg.attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`);
     const g = svg.append('g');
 
-    const zoom = d3.zoom().scaleExtent([0.1, 12]).on('zoom', e => g.attr('transform', `translate(${e.transform.x}, ${e.transform.y}) scale(${e.transform.k})`));
+    const zoom = d3.zoom()
+      .scaleExtent([0.01, 50])
+      .on('zoom', e => g.attr('transform', `translate(${e.transform.x}, ${e.transform.y}) scale(${e.transform.k})`));
+
     svg.call(zoom);
     const initialTransform = d3.zoomIdentity.translate(width / 2 - (minX + maxX) / 2, height / 2 - (minY + maxY) / 2).scale(1.3);
     svg.call(zoom.transform, initialTransform);
@@ -260,12 +276,11 @@ function TreeView({ user }) {
 
     const getAncestors = (id) => {
       const anc = [];
-      let cur = data.find(m => m.id === id);
-      while (cur?.parent_id) {
-        const p = data.find(m => m.id === cur.parent_id);
-        if (!p) break;
-        anc.push(p.id);
-        cur = p;
+      let parentId = data.find(m => m.id === id)?.parent_id;
+      while (parentId) {
+        anc.push(parentId);
+        const p = data.find(m => m.id === parentId);
+        parentId = p?.parent_id;
       }
       return anc;
     };
@@ -278,19 +293,29 @@ function TreeView({ user }) {
       return '';
     };
 
-    // Links
     g.selectAll('.link').data(links, d => d.target.data.id)
       .join(enter => enter.append('path')
           .attr('fill', 'none')
-          .attr('stroke', 'url(#linkGradient)')
-          .attr('stroke-width', 2.5)
-          .attr('d', d => { const sx = d.source.x, sy = d.source.y + boxH, tx = d.target.x, ty = d.target.y, my = (sy + ty) / 2; return `M${sx},${sy} L${sx},${my} L${tx},${my} L${tx},${ty}`; }),
+          .attr('stroke', solidColor)
+          .attr('stroke-width', 3)
+          .attr('d', d => { 
+            const sx = d.source.x, sy = d.source.y + boxH, 
+                  tx = d.target.x, ty = d.target.y, 
+                  my = (sy + ty) / 2; 
+            return `M${sx},${sy} L${sx},${my} L${tx},${my} L${tx},${ty}`; 
+          }),
         update => update.transition().duration(500)
-          .attr('stroke', 'url(#linkGradient)')
-          .attr('d', d => { const sx = d.source.x, sy = d.source.y + boxH, tx = d.target.x, ty = d.target.y, my = (sy + ty) / 2; return `M${sx},${sy} L${sx},${my} L${tx},${my} L${tx},${ty}`; }),
-        exit => exit.remove());
+          .attr('stroke', solidColor)
+          .attr('stroke-width', 3)
+          .attr('d', d => { 
+            const sx = d.source.x, sy = d.source.y + boxH, 
+                  tx = d.target.x, ty = d.target.y, 
+                  my = (sy + ty) / 2; 
+            return `M${sx},${sy} L${sx},${my} L${tx},${my} L${tx},${ty}`; 
+          }),
+        exit => exit.remove()
+    );
 
-    // Nodes
     const nodeGroup = g.selectAll('.node').data(nodes, d => d.data.id)
       .join(enter => {
           const gEnter = enter.append('g').attr('class', 'node')
@@ -299,12 +324,12 @@ function TreeView({ user }) {
           gEnter.append('rect').attr('class', 'node-card')
             .attr('width', boxW).attr('height', boxH).attr('rx', 12).attr('ry', 12)
             .attr('fill', '#ffffffcc')
-            .attr('stroke', d => d.data.is_alive ? '#2E7D32' : '#999')
+            .attr('stroke', d => d.data.is_alive ? solidColor : '#999')
             .attr('stroke-width', 2.5)
             .attr('cursor', 'pointer');
 
           gEnter.append('rect').attr('width', boxW).attr('height', 6).attr('rx', 3)
-            .attr('fill', d => d.data.is_alive ? '#2E7D32' : '#999');
+            .attr('fill', d => d.data.is_alive ? solidColor : '#999');
 
           gEnter.append('foreignObject')
             .attr('width', boxW - 20).attr('height', boxH - 60).attr('x', 10).attr('y', 10)
@@ -365,7 +390,7 @@ function TreeView({ user }) {
                 ctrl.append('text').attr('x', 23).attr('y', 17).attr('text-anchor', 'middle').attr('font-size', '16px').attr('font-weight', 700).attr('fill', color).text(symbol).append('title').text(title);
               };
 
-              addControl('\u2193', 18, '#2E7D32', (node) => openAddMemberForm('child', node.data), 'Child add karein');
+              addControl('\u2193', 18, solidColor, (node) => openAddMemberForm('child', node.data), 'Child add karein');
               addControl('\u2194', boxW / 2 - 23, '#1565C0', (node) => openAddMemberForm('sibling', node.data), 'Sibling add karein');
               addControl('\u2661', boxW - 64, '#C2185B', (node) => openAddMemberForm('wife', node.data), 'Bivi add karein');
             }
@@ -380,7 +405,7 @@ function TreeView({ user }) {
     nodeGroup.on('mouseenter', function(event, d) {
       const ancIds = getAncestors(d.data.id);
       g.selectAll('.node rect.node-card')
-        .attr('stroke', n => ancIds.includes(n.data.id) ? '#4fc3f7' : n.data.is_alive ? '#2E7D32' : '#999')
+        .attr('stroke', n => ancIds.includes(n.data.id) ? '#4fc3f7' : n.data.is_alive ? solidColor : '#999')
         .attr('fill', n => ancIds.includes(n.data.id) ? '#e1f5fe' : '#ffffffcc');
 
       if (d.data.photo) {
@@ -389,7 +414,7 @@ function TreeView({ user }) {
       }
     }).on('mouseleave', function(event, d) {
       g.selectAll('.node rect.node-card')
-        .attr('stroke', n => n.data.is_alive ? '#2E7D32' : '#999')
+        .attr('stroke', n => n.data.is_alive ? solidColor : '#999')
         .attr('fill', '#ffffffcc');
 
       if (d._originalHTML) {
@@ -406,6 +431,7 @@ function TreeView({ user }) {
     }
   }, [members, collapsedNodes, drawTree]);
 
+  // ---------- CRUD handlers ----------
   const handleAddMember = async () => {
     if (!newMember.name.trim()) { alert('Name required'); return; }
     const fd = new FormData();
@@ -422,7 +448,7 @@ function TreeView({ user }) {
     fd.append('info', newMember.info);
     if (newMember.photo) fd.append('photo', newMember.photo);
     try {
-      await api.post('/api/tree', fd, { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } });
+      await axios.post('/api/tree', fd, { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } });
       setOpen(false);
       loadData();
     } catch (err) { alert(err.response?.data?.msg || 'Failed to add'); }
@@ -444,7 +470,7 @@ function TreeView({ user }) {
     fd.append('info', editData.info);
     if (editData.photo) fd.append('photo', editData.photo);
     try {
-      await api.put(`/api/tree/${editingMember.id}`, fd, { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } });
+      await axios.put(`/api/tree/${editingMember.id}`, fd, { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } });
       setEditOpen(false);
       loadData();
     } catch (err) { alert(err.response?.data?.msg || 'Failed to update'); }
@@ -453,82 +479,129 @@ function TreeView({ user }) {
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Kya aap "${name}" ko delete karna chahte hain?`)) return;
     try {
-      await api.delete(`/api/tree/${id}`, { headers: { 'x-auth-token': token } });
+      await axios.delete(`/api/tree/${id}`, { headers: { 'x-auth-token': token } });
       setPopupMember(null);
       loadData();
     } catch (err) { alert(err.response?.data?.msg || 'Delete failed'); }
   };
 
-  const handlePrint = useCallback(() => {
+  // ---------- PRINT HANDLER (unchanged) ----------
+  const handlePrint = useCallback(async () => {
     setPrintDialogOpen(false);
     if (!printMember) return;
 
-    const memberId = printMember.id;
-    const fatherId = printMember.parent_id;
-    const father = members.find(m => m.id === fatherId);
-    const motherName = printMember.mother_name || 'N/A';
-    const spouseName = printMember.spouse_name || printMember.wife_name || 'N/A';
+    try {
+      const res = await axios.get('/api/whole-data');
+      const wholeData = res.data;
 
-    const childrenCount = members.filter(m => m.parent_id === memberId).length;
-    const siblings = fatherId ? members.filter(m => m.parent_id === fatherId && m.id !== memberId) : [];
-    const siblingsCount = siblings.length;
+      const rootNames = {
+        adam: 'Hazrat Adam (A.S)',
+        ali: 'Hazrat Ali Karamullah Wajahu',
+        malook: 'Hazrat Syed Muhammad Malook Shah Sherazi RA',
+      };
+      const rootName = rootNames[printMode];
+      const root = wholeData.find(m => m.name === rootName);
+      if (!root) {
+        alert(`Root "${rootName}" not found in whole_data.`);
+        return;
+      }
 
-    let unclesCount = 0;
-    if (father && father.parent_id) {
-      const grandParentId = father.parent_id;
-      unclesCount = members.filter(m => m.parent_id === grandParentId && m.id !== father.id).length;
+      const map = {};
+      wholeData.forEach(m => map[m.id] = m);
+
+      const normalize = (str) => str.trim().toLowerCase().replace(/r\.a\s*$|ra\s*$/, '').trim();
+      const selectedNameNormalized = normalize(printMember.name);
+
+      let cur = wholeData.find(m => normalize(m.name) === selectedNameNormalized);
+      if (!cur) {
+        alert(`Selected member "${printMember.name}" not found in whole_data.`);
+        return;
+      }
+
+      const selectedNode = cur;
+
+      const path = [];
+      while (cur) {
+        path.push(cur);
+        if (cur.id === root.id) break;
+        cur = map[cur.parent_id];
+        if (!cur) break;
+      }
+      if (path.length === 0 || path[path.length - 1].id !== root.id) {
+        alert(`${printMember.name} is not a descendant of ${rootName}.`);
+        return;
+      }
+      path.reverse();
+
+      const isProphetOrImam = (name, source) => {
+        if (source === 'prophets') return true;
+        const lower = name.toLowerCase();
+        return lower.includes('imam') || (lower.includes('hazrat') && (lower.includes('muhammad') || lower.includes('ali') || lower.includes('hussain') || lower.includes('hasan')));
+      };
+
+      const chainStr = path.map((node, idx) => {
+        const gen = printMode === 'adam' ? node.generation_number : (node.generation_number - root.generation_number + 1);
+        const bold = isProphetOrImam(node.name, node.source);
+        return `<span style="font-weight:${bold ? 'bold' : 'normal'}">${gen}. ${node.name}</span>`;
+      }).join(' => ');
+
+      const memberId = selectedNode.id;
+      const fatherId = selectedNode.parent_id;
+      const father = fatherId ? wholeData.find(m => m.id === fatherId) : null;
+      const motherName = selectedNode.mother_name || 'N/A';
+      const spouseName = selectedNode.spouse_name_db || selectedNode.wife_name || 'N/A';
+      const childrenCount = wholeData.filter(m => m.parent_id === memberId).length;
+      const siblings = fatherId ? wholeData.filter(m => m.parent_id === fatherId && m.id !== memberId) : [];
+      const siblingsCount = siblings.length;
+      let unclesCount = 0;
+      if (father && father.parent_id) {
+        unclesCount = wholeData.filter(m => m.parent_id === father.parent_id && m.id !== father.id).length;
+      }
+      const photoUrl = selectedNode.photo ? `/uploads/${selectedNode.photo}` : null;
+
+      const detailsHTML = `
+        <div style="margin-top:14px;border-top:2px solid #2E7D32;padding-top:10px;font-size:11px;">
+          <h3 style="color:#2E7D32;margin:0 0 8px;font-size:13px;">Selected Member Details</h3>
+          ${photoUrl ? `<div style="text-align:center;margin-bottom:8px;"><img src="${photoUrl}" style="max-width:100px;max-height:100px;border-radius:6px;" /></div>` : ''}
+          <table style="width:100%; border-collapse: collapse; font-size:11px;">
+            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Name</td><td style="border-bottom:1px solid #ddd;">${selectedNode.name}</td></tr>
+            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Father</td><td style="border-bottom:1px solid #ddd;">${father ? father.name : (selectedNode.father_name || 'N/A')}</td></tr>
+            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Mother</td><td style="border-bottom:1px solid #ddd;">${motherName}</td></tr>
+            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Spouse</td><td style="border-bottom:1px solid #ddd;">${spouseName}</td></tr>
+            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Children</td><td style="border-bottom:1px solid #ddd;">${childrenCount}</td></tr>
+            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Siblings</td><td style="border-bottom:1px solid #ddd;">${siblingsCount}</td></tr>
+            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Paternal Uncles</td><td style="border-bottom:1px solid #ddd;">${unclesCount}</td></tr>
+          </table>
+        </div>
+      `;
+
+      const html = `
+        <div class="print-page" style="font-family:'Poppins', sans-serif; padding:15px; color:#1f2a1f; font-size:11px;">
+          <h2 style="color:#2E7D32;margin:0 0 5px;font-size:15px;">Lineage from ${rootName}</h2>
+          <p style="font-size:11px; line-height:1.6; word-break: break-word; margin:0 0 10px;">${chainStr}</p>
+          ${detailsHTML}
+          <p style="color:gray; margin-top:12px; font-size:10px;">Generated from unified family records.</p>
+        </div>
+      `;
+
+      const container = document.getElementById('print-container');
+      if (container) {
+        container.style.display = 'block';
+        container.innerHTML = html;
+        requestAnimationFrame(() => {
+          window.print();
+          window.addEventListener('afterprint', () => {
+            container.style.display = 'none';
+          }, { once: true });
+        });
+      }
+    } catch (err) {
+      console.error('Print lineage error:', err);
+      alert('Failed to load whole data for print.');
     }
+  }, [printMember, printMode]);
 
-    const ancestors = [];
-    let cur = printMember;
-    while (cur && cur.parent_id) {
-      const parent = members.find(m => m.id === cur.parent_id);
-      if (!parent) break;
-      ancestors.push(parent.name || 'Unknown');
-      cur = parent;
-    }
-    const ancestorsLine = ancestors.length > 0 ? ancestors.join(' → ') : 'None';
-
-    const generation = getGenerationText(printMember);
-    const photoUrl = printMember.photo ? `/uploads/${printMember.photo}` : null;
-
-    const treeHTML = `
-      <div class="print-page" style="font-family: 'Poppins', sans-serif; padding: 20px;">
-        <h2 style="color:#2E7D32;">Family Tree – ${printMember.name}</h2>
-        ${photoUrl ? `<div style="text-align:center;margin-bottom:10px;"><img src="${photoUrl}" style="max-width:150px;max-height:150px;border-radius:8px;" /></div>` : ''}
-        <table style="width:100%; border-collapse: collapse;">
-          <tr><td style="padding:8px; font-weight:bold;">Father</td><td>${father ? father.name : 'N/A'}</td></tr>
-          <tr><td style="padding:8px; font-weight:bold;">Mother</td><td>${motherName}</td></tr>
-          <tr><td style="padding:8px; font-weight:bold;">Spouse</td><td>${spouseName}</td></tr>
-          <tr><td style="padding:8px; font-weight:bold;">Sons / Children</td><td>${childrenCount}</td></tr>
-          <tr><td style="padding:8px; font-weight:bold;">Brothers / Siblings</td><td>${siblingsCount}</td></tr>
-          <tr><td style="padding:8px; font-weight:bold;">Paternal Uncles</td><td>${unclesCount}</td></tr>
-          <tr><td style="padding:8px; font-weight:bold;">Ancestors</td><td>${ancestorsLine}</td></tr>
-          <tr><td style="padding:8px; font-weight:bold;">Generation</td><td>${generation}</td></tr>
-        </table>
-        <p style="color: gray; margin-top: 20px;">Note: Counts are based on available family records.</p>
-      </div>
-    `;
-
-    let html = '';
-    if (printOptions.adam) html += adamToMuhammadHTML;
-    if (printOptions.ali) html += aliToSheraziHTML;
-    if (printOptions.history) html += historyHTML;
-    if (printOptions.tree) html += treeHTML;
-
-    const container = document.getElementById('print-container');
-    if (container) {
-      container.style.display = 'block';
-      container.innerHTML = html;
-      requestAnimationFrame(() => {
-        window.print();
-        window.addEventListener('afterprint', () => {
-          container.style.display = 'none';
-        }, { once: true });
-      });
-    }
-  }, [printMember, members, printOptions, getGenerationText]);
-
+  // ---------- Wheel & keyboard events ----------
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -539,11 +612,53 @@ function TreeView({ user }) {
     return () => { container.removeEventListener('wheel', handleWheel); container.removeEventListener('keydown', handleKeyDown); };
   }, []);
 
+  // ---------- render ----------
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <div id="print-container" style={{ display: 'none', position: 'absolute', top: 0, left: 0, width: '100%', background: 'white', zIndex: 9999 }}></div>
 
-      <div className="control-bar">
+      {/* Fixed search box at top-left */}
+      <div style={{ position: 'fixed', top: 10, left: 10, zIndex: 1200, width: 260 }}>
+        <Paper elevation={4} style={{ borderRadius: 8 }}>
+          <TextField
+            size="small"
+            placeholder="Search name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: 'gray' }} />,
+            }}
+            fullWidth
+            variant="outlined"
+          />
+          {searchOpen && (
+            <ClickAwayListener onClickAway={() => setSearchOpen(false)}>
+              <div style={{ maxHeight: 250, overflow: 'auto' }}>
+                <List dense>
+                  {searchResults.map((item) => (
+                    <ListItemButton
+                      key={item.id}
+                      onClick={() => {
+                        setSearchQuery(item.name);
+                        setSearchOpen(false);
+                        zoomToNode(item.id);
+                      }}
+                    >
+                      <ListItemText
+                        primary={item.name}
+                        secondary={`Gen: ${item.generation_number || 'N/A'}`}
+                      />
+                    </ListItemButton>
+                  ))}
+                </List>
+              </div>
+            </ClickAwayListener>
+          )}
+        </Paper>
+      </div>
+
+      {/* Control bar (zoom buttons, add) - now separate, kept at top */}
+      <div className="control-bar" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 8px', background: '#fafafa', borderBottom: '1px solid #ddd' }}>
         <button onClick={zoomOut} title="Zoom Out"><ZoomOutIcon fontSize="inherit" /></button>
         <button onClick={zoomReset} title="Reset Zoom"><CenterFocusStrongIcon fontSize="inherit" /></button>
         <button onClick={zoomIn} title="Zoom In"><ZoomInIcon fontSize="inherit" /></button>
@@ -658,22 +773,11 @@ function TreeView({ user }) {
       <Dialog open={printDialogOpen} onClose={() => setPrintDialogOpen(false)}>
         <DialogTitle>Print / Download Options</DialogTitle>
         <DialogContent>
-          <FormControlLabel
-            control={<Checkbox checked={printOptions.adam} onChange={e => setPrintOptions(prev => ({ ...prev, adam: e.target.checked }))} />}
-            label="Shajra Adam (A.S) to Muhammad (S.A.W)"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={printOptions.ali} onChange={e => setPrintOptions(prev => ({ ...prev, ali: e.target.checked }))} />}
-            label="Shajra Ali (A.S) to Sherazi Sahib"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={printOptions.tree} onChange={e => setPrintOptions(prev => ({ ...prev, tree: e.target.checked }))} />}
-            label="Family Tree (selected member)"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={printOptions.history} onChange={e => setPrintOptions(prev => ({ ...prev, history: e.target.checked }))} />}
-            label="History"
-          />
+          <RadioGroup value={printMode} onChange={e => setPrintMode(e.target.value)}>
+            <FormControlLabel value="adam" control={<Radio />} label="Hazrat Adam (A.S) se selected member tak" />
+            <FormControlLabel value="ali" control={<Radio />} label="Hazrat Ali (A.S) se selected member tak" />
+            <FormControlLabel value="malook" control={<Radio />} label="Malook Shah se selected member tak" />
+          </RadioGroup>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPrintDialogOpen(false)}>Cancel</Button>

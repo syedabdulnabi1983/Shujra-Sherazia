@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { Typography } from '@mui/material';
 import TreeView from './components/TreeView';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -10,20 +11,22 @@ import AdamToMuhammad from './components/AdamToMuhammad';
 import AliToSherazi from './components/AliToSherazi';
 import Thanks from './components/Thanks';
 import Contact from './components/Contact';
+import HomePage from './components/HomePage';
 import setAuthToken from './utils/setAuthToken';
 import { jwtDecode } from 'jwt-decode';
 
 const pageTitles = {
-  '/': 'Family Tree',
-  '/history': 'History',
-  '/adam-to-muhammad': 'Adam (A.S) to Muhammad (S.A.W)',
-  '/ali-to-sherazi': 'Hazrat Ali (A.S) to Sherazi Sahib',
-  '/thanks': 'Special Thanks',
-  '/contact': 'Contact Us',
-  '/login': 'Login',
-  '/register': 'Register',
-  '/register-admin': 'Admin Registration',
-  '/admin': 'Admin Panel',
+  '/': 'صفحۂ اول',
+  '/tree': 'شجرۂ نسب',
+  '/history': 'تاریخ',
+  '/adam-to-muhammad': 'حضرت آدم (ع) تا حضرت محمد مصطفیٰ ﷺ',
+  '/ali-to-sherazi': 'حضرت علی (ع) تا شیرازی',
+  '/thanks': 'خصوصی شکریہ',
+  '/contact': 'رابطہ',
+  '/login': 'لاگ ان',
+  '/register': 'رجسٹر',
+  '/register-admin': 'ایڈمن رجسٹریشن',
+  '/admin': 'ایڈمن پینل',
 };
 
 function AppContent() {
@@ -41,19 +44,13 @@ function AppContent() {
           setUser({ id: decoded.id, email: decoded.email, role: decoded.role, is_master: decoded.is_master });
           setAuthToken(token);
         }
-      } catch (e) {
-        localStorage.removeItem('token');
-      }
+      } catch (e) { localStorage.removeItem('token'); }
     }
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    window.location.href = '/';
-  };
+  const logout = () => { localStorage.removeItem('token'); setUser(null); window.location.href = '/'; };
 
-  const currentTitle = pageTitles[location.pathname] || 'Family Tree';
+  const currentTitle = pageTitles[location.pathname] || 'شجرۂ شیرازیہ';
   const isAdmin = user && user.role === 'admin';
 
   return (
@@ -61,6 +58,20 @@ function AppContent() {
       {/* Bismillah Header */}
       <div className="bismillah-header">
         <h2>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</h2>
+      </div>
+
+      {/* Salwat (Durood) */}
+      <div style={{ background: '#1B5E20', textAlign: 'center', padding: '6px 0', borderBottom: '2px solid #FDD835' }}>
+        <Typography variant="body1" sx={{ color: '#FDD835', fontFamily: 'Noto Nastaliq Urdu, serif', fontSize: '18px' }}>
+          صَلُّوا عَلَى النَّبِيِّ مُحَمَّدٍ ﷺ
+        </Typography>
+      </div>
+
+      {/* 🆕 Dua Added here – Just below Salwat */}
+      <div style={{ background: '#1B5E20', textAlign: 'center', padding: '6px 0', borderBottom: '2px solid #FDD835' }}>
+        <Typography variant="body1" sx={{ color: '#FDD835', fontFamily: 'Noto Nastaliq Urdu, serif', fontSize: '14px' }}>
+          رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا
+        </Typography>
       </div>
 
       <nav className="navbar-custom">
@@ -71,44 +82,40 @@ function AppContent() {
               <path d="M18 3 L18 33 M18 3 C10 10 10 26 18 33 M18 3 C26 10 26 26 18 33" fill="none" stroke="#FDD835" strokeWidth="2"/>
               <circle cx="18" cy="18" r="5" fill="#FDD835"/>
             </svg>
-            <span className="brand-text">Sherazia</span>
+            <span className="brand-text">شیرازیہ</span>
           </Link>
-
           <div className="navbar-links">
-            <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Tree</Link>
-            <Link to="/history" className={`nav-link ${location.pathname === '/history' ? 'active' : ''}`}>History</Link>
-            <Link to="/adam-to-muhammad" className={`nav-link ${location.pathname === '/adam-to-muhammad' ? 'active' : ''}`}>Adam to Muhammad</Link>
-            <Link to="/ali-to-sherazi" className={`nav-link ${location.pathname === '/ali-to-sherazi' ? 'active' : ''}`}>Ali to Sherazi</Link>
-            <Link to="/thanks" className={`nav-link ${location.pathname === '/thanks' ? 'active' : ''}`}>Thanks</Link>
-            <Link to="/contact" className={`nav-link ${location.pathname === '/contact' ? 'active' : ''}`}>Contact</Link>
-            {isAdmin && <Link to="/admin" className={`nav-link admin-link ${location.pathname === '/admin' ? 'active' : ''}`}>Admin</Link>}
+            <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>ہوم</Link>
+            <Link to="/tree" className={`nav-link ${location.pathname === '/tree' ? 'active' : ''}`}>شجرہ</Link>
+            <Link to="/history" className={`nav-link ${location.pathname === '/history' ? 'active' : ''}`}>تاریخ</Link>
+            <Link to="/adam-to-muhammad" className={`nav-link ${location.pathname === '/adam-to-muhammad' ? 'active' : ''}`}>آدم تا محمد ﷺ</Link>
+            <Link to="/ali-to-sherazi" className={`nav-link ${location.pathname === '/ali-to-sherazi' ? 'active' : ''}`}>علی تا شیرازی</Link>
+            <Link to="/thanks" className={`nav-link ${location.pathname === '/thanks' ? 'active' : ''}`}>شکریہ</Link>
+            <Link to="/contact" className={`nav-link ${location.pathname === '/contact' ? 'active' : ''}`}>رابطہ</Link>
+            {isAdmin && <Link to="/admin" className={`nav-link admin-link ${location.pathname === '/admin' ? 'active' : ''}`}>ایڈمن</Link>}
           </div>
-
           <div className="navbar-user">
             {!user ? (
               <>
-                <Link to="/login" className="nav-link">Login</Link>
-                <Link to="/register" className="nav-link">Register</Link>
-                {/* ✅ Admin Registration Link added */}
-                <Link to="/register-admin" className="nav-link" style={{ border: '1px solid #FDD835', color: '#FDD835' }}>Admin Registration</Link>
+                <Link to="/login" className="nav-link">لاگ ان</Link>
+                <Link to="/register" className="nav-link">رجسٹر</Link>
+                <Link to="/register-admin" className="nav-link" style={{ border: '1px solid #FDD835', color: '#FDD835' }}>ایڈمن رجسٹر</Link>
               </>
             ) : (
               <div className="user-menu">
                 <span className="user-email">{user.email} ({user.role})</span>
-                <button onClick={logout} className="logout-btn">Logout</button>
+                <button onClick={logout} className="logout-btn">لاگ آؤٹ</button>
               </div>
             )}
           </div>
         </div>
       </nav>
 
-      <div className="page-heading">
-        <h1>{currentTitle}</h1>
-      </div>
-
+      <div className="page-heading"><h1>{currentTitle}</h1></div>
       <div className="main-content">
         <Routes>
-          <Route path="/" element={<TreeView user={user} />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/tree" element={<TreeView user={user} />} />
           <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
           <Route path="/register-admin" element={!user ? <RegisterAdmin /> : <Navigate to="/" />} />
@@ -120,18 +127,20 @@ function AppContent() {
           <Route path="/admin" element={user && user.role === 'admin' ? <AdminPanel user={user} /> : <Navigate to="/" />} />
         </Routes>
       </div>
+
+      {/* Footer – remaining only copyright */}
+      <div className="footer">
+        <Typography variant="body2" sx={{ color: '#FDD835' }}>
+          © {new Date().getFullYear()} شیرازیہ فیملی ٹری۔ جملہ حقوق محفوظ ہیں۔
+        </Typography>
+      </div>
     </div>
   );
 }
 
 function App() {
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppContent />
     </Router>
   );

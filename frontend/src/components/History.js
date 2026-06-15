@@ -1,7 +1,7 @@
 import React from 'react';
 
 const History = () => (
-  <div className="card p-4">
+  <div style={{ padding: 20 }}>
     <h2>History</h2>
     <p>Under Construction</p>
   </div>

@@ -73,7 +73,6 @@ const AdminPanel = ({ user }) => {
   };
 
   return (
-    // ✅ Scrollable wrapper for entire admin panel
     <Box sx={{ height: '100%', overflowY: 'auto', py: 4 }}>
       <Container maxWidth="xl">
         <Typography variant="h4" sx={{ mb: 3, fontWeight: 700, color: '#2E7D32' }}>
