@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from 'axios'; axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 
 const setAuthToken = token => {
   if (token) {

@@ -1,0 +1,17 @@
+# Node modules
+node_modules/
+*/node_modules/
+
+# Environment files
+.env
+*/.env
+
+# Oracle JDK (bahut bada hai)
+backend/routes/oracleJdk-26/
+
+# Frontend build (optional - deploy par build hogi)
+frontend/build/
+
+# Windows files
+Thumbs.db
+desktop.ini 

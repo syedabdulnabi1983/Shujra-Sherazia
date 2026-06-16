@@ -11,6 +11,9 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import axios from 'axios';
 import * as d3 from 'd3';
 
+// ✅ Ngrok warning bypass header – ab imports ke baad hai
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
+
 function AliToSherazi({ user }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
@@ -34,14 +37,16 @@ function AliToSherazi({ user }) {
   const token = localStorage.getItem('token');
   const isAdmin = user && user.email === 'admin@shujra.com';
 
-  // ─── FETCH DATA ───
+  // ✅ FETCH DATA – robust array check
   const loadChain = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get('/api/ali-sherazia');
-      setChain(res.data);
+      const data = Array.isArray(res.data) ? res.data : [];
+      setChain(data);
     } catch (err) {
       console.error('Error fetching data:', err);
+      setChain([]);
     } finally {
       setLoading(false);
     }
@@ -235,10 +240,8 @@ function AliToSherazi({ user }) {
     
     let addedNodes = chain.filter(n => n.id !== ali?.id && n.id !== hasan?.id && n.id !== hussain?.id);
     
-    // ✅ SORTING: Generation number ke hisaab se, phir sibling_order ke hisaab se
     addedNodes = addedNodes.sort((a, b) => {
       if (a.generation_number !== b.generation_number) return a.generation_number - b.generation_number;
-      // ✅ sibling_order use karo (agar 0 hai to default)
       return (a.sibling_order || 0) - (b.sibling_order || 0);
     });
     
@@ -262,7 +265,6 @@ function AliToSherazi({ user }) {
     const startY = childY + vBoxH + 100;
     const startX = pad + 50;
 
-    // ─── POSITION MAP ───
     const nodePositions = new Map();
     if (ali) nodePositions.set(ali.id, { x: aliX, y: aliY, w: vBoxW, h: vBoxH });
     if (hasan) nodePositions.set(hasan.id, { x: hasanX, y: childY, w: vBoxW, h: vBoxH });
@@ -274,7 +276,6 @@ function AliToSherazi({ user }) {
       nodePositions.set(node.id, { x, y, w: hBoxW, h: hBoxH });
     });
 
-    // ─── SVG DIMENSIONS ───
     let maxX = 0, maxY = 0;
     nodePositions.forEach(pos => {
       if (pos.x + pos.w > maxX) maxX = pos.x + pos.w;
@@ -293,7 +294,6 @@ function AliToSherazi({ user }) {
     const initTransform = d3.zoomIdentity.translate(50, 50).scale(0.9);
     svg.call(zoom.transform, initTransform);
 
-    // ─── CONNECTORS ───
     const lineColor = '#2E7D32';
     const lineWidth = 2.5;
 
@@ -328,7 +328,6 @@ function AliToSherazi({ user }) {
         .attr('d', `M${hussainCX},${midY} L${hussainCX},${childTopY}`);
     }
 
-    // ─── DRAW NODES ───
     const drawNode = (node, x, y, w, h, isAli = false) => {
       const g = mainGroup.append('g').attr('transform', `translate(${x}, ${y})`);
       g.append('rect')
@@ -376,9 +375,7 @@ function AliToSherazi({ user }) {
         .style('line-height', '1.4')
         .html(contentHtml);
 
-      // ✅ ADMIN BUTTONS SIRF `admin@shujra.com` KE LIYE
       if (isAdmin) {
-        // ─── DELETE BUTTON ───
         const deleteGroup = g.append('g')
           .attr('transform', `translate(${w - 36}, 6)`)
           .attr('cursor', 'pointer')
@@ -400,7 +397,6 @@ function AliToSherazi({ user }) {
           .attr('fill', '#d32f2f')
           .text('✕');
 
-        // ─── ADD CHILD (+) ───
         const addGroup = g.append('g')
           .attr('transform', `translate(${w - 36}, ${h - 36})`)
           .attr('cursor', 'pointer')
@@ -418,7 +414,6 @@ function AliToSherazi({ user }) {
           .attr('font-weight', 'bold')
           .text('+');
 
-        // ─── EDIT BUTTON (✎) ───
         const editGroup = g.append('g')
           .attr('transform', `translate(${w - 68}, ${h - 28})`)
           .attr('cursor', 'pointer')
@@ -439,7 +434,6 @@ function AliToSherazi({ user }) {
       }
     };
 
-    // Render all
     if (ali) drawNode(ali, aliX, aliY, vBoxW, vBoxH, true);
     if (hasan) drawNode(hasan, hasanX, childY, vBoxW, vBoxH);
     if (hussain) drawNode(hussain, hussainX, childY, vBoxW, vBoxH);
@@ -477,7 +471,6 @@ function AliToSherazi({ user }) {
         <button onClick={refreshData} title="Refresh Data"><RefreshIcon fontSize="inherit" /></button>
       </div>
 
-      {/* ─── ADD CHILD DIALOG ─── */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ bgcolor: '#2E7D32', color: 'white' }}>Add Child</DialogTitle>
         <DialogContent>
@@ -501,7 +494,6 @@ function AliToSherazi({ user }) {
         </DialogActions>
       </Dialog>
 
-      {/* ─── EDIT DIALOG ─── */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ bgcolor: '#1565C0', color: 'white' }}>Edit Node</DialogTitle>
         <DialogContent>

@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
       WHERE n.source = 'tree_nodes'
       ORDER BY n.generation_number, n.id
     `);
-    res.json(result.rows);
+    res.json(result.rows);   // always returns array
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Server error' });

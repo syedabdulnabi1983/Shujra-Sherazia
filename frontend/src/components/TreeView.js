@@ -127,11 +127,12 @@ function TreeView({ user }) {
     setOpen(true);
   }, [members]);
 
-  // ---------- load tree data ----------
+  // ---------- load tree data (NOW FROM /api/tree) ----------
   const loadData = useCallback(async () => {
     try {
       const res = await axios.get('/api/tree');
-      const nodes = res.data;
+      console.log('TreeView raw response:', res.data);
+      const nodes = Array.isArray(res.data) ? res.data : [];
       const processed = nodes.map(n => ({
         ...n,
         is_alive: n.is_alive !== undefined ? n.is_alive : !n.death_date,
@@ -149,6 +150,7 @@ function TreeView({ user }) {
       setMembers(processed);
     } catch (err) {
       console.error('Failed to load tree:', err);
+      setMembers([]);
     }
   }, []);
 
@@ -175,14 +177,14 @@ function TreeView({ user }) {
     setSearchOpen(results.length > 0);
   }, [searchQuery, members]);
 
-  // ---------- Zoom to node (bigger zoom) ----------
+  // ---------- Zoom to node ----------
   const zoomToNode = useCallback((nodeId) => {
     const pos = nodePositionsRef.current[nodeId];
     if (!pos || !zoomRef.current) return;
     const svg = d3.select(svgRef.current);
     const width = svg.attr('width');
     const height = svg.attr('height');
-    const scale = 20;   // 200x zoom (pehle 10 tha)
+    const scale = 20;
     const centerX = pos.x + pos.w / 2;
     const centerY = pos.y + pos.h / 2;
 
@@ -194,7 +196,7 @@ function TreeView({ user }) {
     svg.transition().duration(750).call(zoomRef.current.transform, transform);
   }, []);
 
-  // ---------- generation text ----------
+  // ---------- generation text (for detail popup) ----------
   const getGenerationText = useCallback((member) => {
     if (!member || members.length === 0) return 'N/A';
     const root = members.find(m => !m.parent_id && !m.spouse_id) || members[0];
