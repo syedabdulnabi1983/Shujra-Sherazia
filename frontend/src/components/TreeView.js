@@ -411,8 +411,10 @@ function TreeView({ user }) {
         .attr('fill', n => ancIds.includes(n.data.id) ? '#e1f5fe' : '#ffffffcc');
 
       if (d.data.photo) {
+        // FIXED: agar photo URL http se shuru hai to seedha use karein, warna /uploads/ lagayein
+        const photoSrc = d.data.photo.startsWith('http') ? d.data.photo : `/uploads/${d.data.photo}`;
         d3.select(this).select('.node-content')
-          .html(`<img src="/uploads/${d.data.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />`);
+          .html(`<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />`);
       }
     }).on('mouseleave', function(event, d) {
       g.selectAll('.node rect.node-card')
@@ -559,7 +561,11 @@ function TreeView({ user }) {
       if (father && father.parent_id) {
         unclesCount = wholeData.filter(m => m.parent_id === father.parent_id && m.id !== father.id).length;
       }
-      const photoUrl = selectedNode.photo ? `/uploads/${selectedNode.photo}` : null;
+
+      // FIXED: image URL handling
+      const photoUrl = selectedNode.photo 
+        ? (selectedNode.photo.startsWith('http') ? selectedNode.photo : `/uploads/${selectedNode.photo}`) 
+        : null;
 
       const detailsHTML = `
         <div style="margin-top:14px;border-top:2px solid #2E7D32;padding-top:10px;font-size:11px;">
@@ -659,7 +665,7 @@ function TreeView({ user }) {
         </Paper>
       </div>
 
-      {/* Control bar (zoom buttons, add) - now separate, kept at top */}
+      {/* Control bar (zoom buttons, add) */}
       <div className="control-bar" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 8px', background: '#fafafa', borderBottom: '1px solid #ddd' }}>
         <button onClick={zoomOut} title="Zoom Out"><ZoomOutIcon fontSize="inherit" /></button>
         <button onClick={zoomReset} title="Reset Zoom"><CenterFocusStrongIcon fontSize="inherit" /></button>
@@ -708,7 +714,12 @@ function TreeView({ user }) {
               </table>
               {detailsMember.photo && (
                 <div style={{ textAlign: 'center', marginTop: 10 }}>
-                  <img src={`/uploads/${detailsMember.photo}`} alt={detailsMember.name} style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} />
+                  {/* FIXED: Cloudinary URL handling */}
+                  <img 
+                    src={detailsMember.photo.startsWith('http') ? detailsMember.photo : `/uploads/${detailsMember.photo}`} 
+                    alt={detailsMember.name} 
+                    style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} 
+                  />
                 </div>
               )}
             </>
