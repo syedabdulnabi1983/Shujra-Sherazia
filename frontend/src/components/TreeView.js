@@ -156,7 +156,29 @@ function TreeView({ user }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ---------- Search filter ----------
+  // ---------- Helper: relative generation from Malook Shah ----------
+  const getRelativeGen = useCallback((member) => {
+    if (!member || members.length === 0) return 'N/A';
+    const malook = members.find(m => m.name?.includes('Malook Shah'));
+    const root = malook || (members.find(m => !m.parent_id && !m.spouse_id) || members[0]);
+    if (member.generation_number != null && root.generation_number != null) {
+      const gen = (member.generation_number - root.generation_number) + 1;
+      if (gen >= 1) return gen;
+    }
+    // fallback: count steps
+    if (member.id === root.id) return 1;
+    let count = 0;
+    let cur = member;
+    while (cur?.parent_id) {
+      count++;
+      cur = members.find(m => m.id === cur.parent_id);
+      if (!cur) break;
+      if (cur.id === root.id) break;
+    }
+    return count + 1;
+  }, [members]);
+
+  // ---------- Search filter (with relative gen) ----------
   useEffect(() => {
     if (searchQuery.trim().length === 0) {
       setSearchResults([]);
@@ -169,13 +191,19 @@ function TreeView({ user }) {
       .map(m => ({
         id: m.id,
         name: m.name,
-        generation_number: m.generation_number,
+        genRelative: getRelativeGen(m),
+        genText: (() => {
+          const g = getRelativeGen(m);
+          if (g === 'N/A') return 'N/A';
+          const suffix = g === 1 ? 'st' : g === 2 ? 'nd' : g === 3 ? 'rd' : 'th';
+          return `${g}${suffix} Generation`;
+        })(),
       }))
-      .sort((a, b) => (a.generation_number || 0) - (b.generation_number || 0))
+      .sort((a, b) => (a.genRelative === 'N/A' ? 0 : a.genRelative) - (b.genRelative === 'N/A' ? 0 : b.genRelative))
       .slice(0, 20);
     setSearchResults(results);
     setSearchOpen(results.length > 0);
-  }, [searchQuery, members]);
+  }, [searchQuery, members, getRelativeGen]);
 
   // ---------- Zoom to node ----------
   const zoomToNode = useCallback((nodeId) => {
@@ -196,37 +224,14 @@ function TreeView({ user }) {
     svg.transition().duration(750).call(zoomRef.current.transform, transform);
   }, []);
 
-  // ---------- generation text (FIXED: Malook Shah relative) ----------
+  // ---------- generation text for detail popup ----------
   const getGenerationText = useCallback((member) => {
     if (!member || members.length === 0) return 'N/A';
-
-    // Find Malook Shah as the reference root
-    const malook = members.find(m => m.name?.includes('Malook Shah'));
-    const root = malook || (members.find(m => !m.parent_id && !m.spouse_id) || members[0]);
-
-    // If both have valid generation_number, use subtraction
-    if (member.generation_number != null && root.generation_number != null) {
-      const gen = (member.generation_number - root.generation_number) + 1;
-      if (gen >= 1) {
-        const suffix = gen === 1 ? 'st' : gen === 2 ? 'nd' : gen === 3 ? 'rd' : 'th';
-        return `${gen}${suffix} Generation`;
-      }
-    }
-
-    // Fallback: count parent chain steps
-    if (member.id === root.id) return '1st Generation';
-    let count = 0;
-    let cur = member;
-    while (cur?.parent_id) {
-      count++;
-      cur = members.find(m => m.id === cur.parent_id);
-      if (!cur) break;
-      if (cur.id === root.id) break;
-    }
-    const gen = count + 1;
-    const suffix = gen === 1 ? 'st' : gen === 2 ? 'nd' : gen === 3 ? 'rd' : 'th';
-    return `${gen}${suffix} Generation`;
-  }, [members]);
+    const g = getRelativeGen(member);
+    if (g === 'N/A') return 'N/A';
+    const suffix = g === 1 ? 'st' : g === 2 ? 'nd' : g === 3 ? 'rd' : 'th';
+    return `${g}${suffix} Generation`;
+  }, [members, getRelativeGen]);
 
   // ---------- D3 tree drawing ----------
   const drawTree = useCallback((svgNode, data, collapseSet = new Set(), editable = true) => {
@@ -502,7 +507,7 @@ function TreeView({ user }) {
     } catch (err) { alert(err.response?.data?.msg || 'Delete failed'); }
   };
 
-  // ---------- PRINT HANDLER (FIXED: ID then Name) ----------
+  // ---------- PRINT HANDLER (FIXED: ID then robust name fallback) ----------
   const handlePrint = useCallback(async () => {
     setPrintDialogOpen(false);
     if (!printMember) return;
@@ -532,25 +537,35 @@ function TreeView({ user }) {
         cur = wholeData.find(m => m.id === printMember.id);
       }
       if (!cur) {
-        const norm = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ').replace(/r\.a\.?\s*$|ra\s*$/, '').trim();
-        const targetName = norm(printMember.name);
-        cur = wholeData.find(m => norm(m.name) === targetName);
+        // Robust normalization: remove "RA", "R.A", extra spaces, lowercase
+        const normalize = (str) => {
+          return str
+            .replace(/r\.a\.?\s*$/i, '') // remove trailing R.A or RA
+            .replace(/\s+/g, ' ')        // collapse spaces
+            .trim()
+            .toLowerCase();
+        };
+        const target = normalize(printMember.name);
+        cur = wholeData.find(m => normalize(m.name) === target);
       }
-      // ------------------------------------
 
+      // Debug: if still not found, log details
       if (!cur) {
-        alert(`Selected member "${printMember.name}" not found in whole_data.`);
+        console.warn('Print member not found:', printMember);
+        console.log('Whole data names (first 10):', wholeData.slice(0,10).map(m => m.name));
+        alert(`Selected member "${printMember.name}" (ID: ${printMember.id}) not found in whole_data. Check console for details.`);
         return;
       }
 
       const selectedNode = cur;
 
       const path = [];
-      while (cur) {
-        path.push(cur);
-        if (cur.id === root.id) break;
-        cur = map[cur.parent_id];
-        if (!cur) break;
+      let current = selectedNode;
+      while (current) {
+        path.push(current);
+        if (current.id === root.id) break;
+        current = map[current.parent_id];
+        if (!current) break;
       }
       if (path.length === 0 || path[path.length - 1].id !== root.id) {
         alert(`${printMember.name} is not a descendant of ${rootName}.`);
@@ -674,7 +689,7 @@ function TreeView({ user }) {
                     >
                       <ListItemText
                         primary={item.name}
-                        secondary={`Gen: ${item.generation_number || 'N/A'}`}
+                        secondary={item.genText}
                       />
                     </ListItemButton>
                   ))}
