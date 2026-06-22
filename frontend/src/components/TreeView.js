@@ -51,7 +51,6 @@ function TreeView({ user }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsMember, setDetailsMember] = useState(null);
 
-  // Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -99,16 +98,13 @@ function TreeView({ user }) {
       setOpen(true);
       return;
     }
-
     let newData = { ...emptyMember };
-
     if (relation === 'child') {
       newData.parent_id = member.id;
       newData.father_name = member.name || '';
       newData.mother_name = member.wife_name || '';
       setAddDialogTitle(`Add Child of ${member.name}`);
-    } 
-    else if (relation === 'sibling') {
+    } else if (relation === 'sibling') {
       newData.parent_id = member.parent_id || '';
       const parent = members.find(m => m.id === member.parent_id);
       if (parent) {
@@ -116,12 +112,10 @@ function TreeView({ user }) {
         newData.mother_name = parent.wife_name || '';
       }
       setAddDialogTitle(`Add Bhai/Behan of ${member.name}`);
-    } 
-    else if (relation === 'wife') {
+    } else if (relation === 'wife') {
       newData.spouse_id = member.id;
       setAddDialogTitle(`Add Bivi of ${member.name}`);
     }
-
     setPopupMember(null);
     setNewMember(newData);
     setOpen(true);
@@ -131,7 +125,6 @@ function TreeView({ user }) {
   const loadData = useCallback(async () => {
     try {
       const res = await axios.get('/api/tree');
-      console.log('TreeView raw response:', res.data);
       const nodes = Array.isArray(res.data) ? res.data : [];
       const processed = nodes.map(n => ({
         ...n,
@@ -156,7 +149,7 @@ function TreeView({ user }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ---------- Helper: relative generation from Malook Shah ----------
+  // ---------- relative generation from Malook Shah ----------
   const getRelativeGen = useCallback((member) => {
     if (!member || members.length === 0) return 'N/A';
     const malook = members.find(m => m.name?.includes('Malook Shah'));
@@ -165,7 +158,6 @@ function TreeView({ user }) {
       const gen = (member.generation_number - root.generation_number) + 1;
       if (gen >= 1) return gen;
     }
-    // fallback: count steps
     if (member.id === root.id) return 1;
     let count = 0;
     let cur = member;
@@ -215,12 +207,7 @@ function TreeView({ user }) {
     const scale = 20;
     const centerX = pos.x + pos.w / 2;
     const centerY = pos.y + pos.h / 2;
-
-    const transform = d3.zoomIdentity
-      .translate(width / 2, height / 2)
-      .scale(scale)
-      .translate(-centerX, -centerY);
-
+    const transform = d3.zoomIdentity.translate(width / 2, height / 2).scale(scale).translate(-centerX, -centerY);
     svg.transition().duration(750).call(zoomRef.current.transform, transform);
   }, []);
 
@@ -237,221 +224,84 @@ function TreeView({ user }) {
   const drawTree = useCallback((svgNode, data, collapseSet = new Set(), editable = true) => {
     const svg = d3.select(svgNode);
     svg.selectAll('*').remove();
-
-    const solidColor = '#2E7D32'; 
-
+    const solidColor = '#2E7D32';
     const isMobile = window.innerWidth < 768;
-    const boxW = isMobile ? 220 : 270;
-    const boxH = isMobile ? 180 : 210;
-    const nodeW = isMobile ? 300 : 380;
-    const nodeH = isMobile ? 240 : 270;
-    const fontSize = isMobile ? '10px' : '12px';
-    const small = isMobile ? '8px' : '10px';
-    const padding = 300;
-
+    const boxW = isMobile ? 220 : 270, boxH = isMobile ? 180 : 210, nodeW = isMobile ? 300 : 380, nodeH = isMobile ? 240 : 270;
+    const fontSize = isMobile ? '10px' : '12px', small = isMobile ? '8px' : '10px', padding = 300;
     const rootMember = data.find(m => !m.parent_id && !m.spouse_id) || data[0];
     if (!rootMember) return;
-
     const build = pid => data.filter(m => m.parent_id === pid && !m.spouse_id).map(c => ({ ...c, children: build(c.id) }));
     let root = d3.hierarchy({ ...rootMember, children: build(rootMember.id) });
-
-    root.each(n => {
-      if (collapseSet.has(n.data.id) && n.children) {
-        n._children = n.children;
-        n.children = null;
-      }
-    });
-
+    root.each(n => { if (collapseSet.has(n.data.id) && n.children) { n._children = n.children; n.children = null; } });
     const tree = d3.tree().nodeSize([nodeW, nodeH]);
     tree(root);
-    const nodes = root.descendants();
-    const links = root.links();
-
+    const nodes = root.descendants(), links = root.links();
     const posMap = {};
-    nodes.forEach(n => {
-      posMap[n.data.id] = {
-        x: n.x - boxW / 2,
-        y: n.y,
-        w: boxW,
-        h: boxH,
-      };
-    });
+    nodes.forEach(n => posMap[n.data.id] = { x: n.x - boxW/2, y: n.y, w: boxW, h: boxH });
     nodePositionsRef.current = posMap;
-
-    const minX = d3.min(nodes, d => d.x) || 0, maxX = d3.max(nodes, d => d.x) || 0;
-    const minY = d3.min(nodes, d => d.y) || 0, maxY = d3.max(nodes, d => d.y) || 0;
-    const width = Math.max(maxX - minX + padding * 2 + boxW, 800);
-    const height = Math.max(maxY - minY + padding * 2 + boxH, 600);
-
+    const minX = d3.min(nodes, d => d.x)||0, maxX = d3.max(nodes, d => d.x)||0, minY = d3.min(nodes, d => d.y)||0, maxY = d3.max(nodes, d => d.y)||0;
+    const width = Math.max(maxX - minX + padding*2 + boxW, 800), height = Math.max(maxY - minY + padding*2 + boxH, 600);
     svg.attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`);
     const g = svg.append('g');
-
-    const zoom = d3.zoom()
-      .scaleExtent([0.01, 50])
-      .on('zoom', e => g.attr('transform', `translate(${e.transform.x}, ${e.transform.y}) scale(${e.transform.k})`));
-
+    const zoom = d3.zoom().scaleExtent([0.01, 50]).on('zoom', e => g.attr('transform', `translate(${e.transform.x}, ${e.transform.y}) scale(${e.transform.k})`));
     svg.call(zoom);
-    const initialTransform = d3.zoomIdentity.translate(width / 2 - (minX + maxX) / 2, height / 2 - (minY + maxY) / 2).scale(1.3);
-    svg.call(zoom.transform, initialTransform);
+    svg.call(zoom.transform, d3.zoomIdentity.translate(width/2 - (minX+maxX)/2, height/2 - (minY+maxY)/2).scale(1.3));
     if (editable) zoomRef.current = zoom;
 
-    const getAncestors = (id) => {
-      const anc = [];
-      let parentId = data.find(m => m.id === id)?.parent_id;
-      while (parentId) {
-        anc.push(parentId);
-        const p = data.find(m => m.id === parentId);
-        parentId = p?.parent_id;
-      }
-      return anc;
-    };
+    const getAncestors = (id) => { const anc=[]; let pid=data.find(m=>m.id===id)?.parent_id; while(pid){ anc.push(pid); pid=data.find(m=>m.id===pid)?.parent_id; } return anc; };
+    const calcAge = (b,d) => { const by=parseInt(b), dy=parseInt(d); if(by&&dy) return `${dy-by}y`; if(by) return `${new Date().getFullYear()-by}y`; return ''; };
 
-    const calcAge = (b, d) => {
-      const birthYear = b ? parseInt(b) : null;
-      const deathYear = d ? parseInt(d) : null;
-      if (birthYear && deathYear) return `${deathYear - birthYear}y`;
-      if (birthYear) return `${new Date().getFullYear() - birthYear}y`;
-      return '';
-    };
+    g.selectAll('.link').data(links, d=>d.target.data.id)
+      .join(enter=>enter.append('path').attr('fill','none').attr('stroke',solidColor).attr('stroke-width',3).attr('d',d=>{ const sx=d.source.x,sy=d.source.y+boxH,tx=d.target.x,ty=d.target.y,my=(sy+ty)/2; return `M${sx},${sy} L${sx},${my} L${tx},${my} L${tx},${ty}`; }),
+            update=>update.transition().duration(500).attr('d',d=>{ const sx=d.source.x,sy=d.source.y+boxH,tx=d.target.x,ty=d.target.y,my=(sy+ty)/2; return `M${sx},${sy} L${sx},${my} L${tx},${my} L${tx},${ty}`; }),
+            exit=>exit.remove());
 
-    g.selectAll('.link').data(links, d => d.target.data.id)
-      .join(enter => enter.append('path')
-          .attr('fill', 'none')
-          .attr('stroke', solidColor)
-          .attr('stroke-width', 3)
-          .attr('d', d => { 
-            const sx = d.source.x, sy = d.source.y + boxH, 
-                  tx = d.target.x, ty = d.target.y, 
-                  my = (sy + ty) / 2; 
-            return `M${sx},${sy} L${sx},${my} L${tx},${my} L${tx},${ty}`; 
-          }),
-        update => update.transition().duration(500)
-          .attr('stroke', solidColor)
-          .attr('stroke-width', 3)
-          .attr('d', d => { 
-            const sx = d.source.x, sy = d.source.y + boxH, 
-                  tx = d.target.x, ty = d.target.y, 
-                  my = (sy + ty) / 2; 
-            return `M${sx},${sy} L${sx},${my} L${tx},${my} L${tx},${ty}`; 
-          }),
-        exit => exit.remove()
-    );
-
-    const nodeGroup = g.selectAll('.node').data(nodes, d => d.data.id)
-      .join(enter => {
-          const gEnter = enter.append('g').attr('class', 'node')
-            .attr('transform', d => `translate(${d.x - boxW / 2}, ${d.y})`);
-
-          gEnter.append('rect').attr('class', 'node-card')
-            .attr('width', boxW).attr('height', boxH).attr('rx', 12).attr('ry', 12)
-            .attr('fill', '#ffffffcc')
-            .attr('stroke', d => d.data.is_alive ? solidColor : '#999')
-            .attr('stroke-width', 2.5)
-            .attr('cursor', 'pointer');
-
-          gEnter.append('rect').attr('width', boxW).attr('height', 6).attr('rx', 3)
-            .attr('fill', d => d.data.is_alive ? solidColor : '#999');
-
-          gEnter.append('foreignObject')
-            .attr('width', boxW - 20).attr('height', boxH - 60).attr('x', 10).attr('y', 10)
-            .append('xhtml:div').attr('class', 'node-content')
-            .style('width', '100%').style('height', '100%')
-            .style('display', 'flex')
-            .style('flex-direction', 'column').style('align-items', 'center').style('justify-content', 'center')
-            .style('text-align', 'center').style('font-size', fontSize).style('color', d => d.data.is_alive ? '#333' : '#999')
-            .html(d => {
-              const name = d.data.name;
-              const father = d.data.father_name ? `<span style="font-size:${small}">(s/o ${d.data.father_name})</span>` : '';
-              const birth = d.data.birth_date || '', death = d.data.death_date || '';
-              const years = birth || death ? `<div style="font-size:${small}">${birth}${death ? '-' + death : ''}</div>` : '';
-              const age = calcAge(d.data.birth_date, d.data.death_date);
-              const ageStr = age ? `<div style="font-size:${small};color:#FF9800">Age: ${age}</div>` : '';
-              const status = d.data.is_alive ? '<span class="alive-badge">Alive</span>' : '<span class="deceased-badge">🕌</span>';
-              const urdu = d.data.urdu_name ? `<div class="urdu-name">${d.data.urdu_name}</div>` : '';
-              const spouseLine = d.data.spouse_name ? `<div class="spouse-sticker">💍 ${d.data.spouse_name}</div>` : '';
-              return `<b>${name}</b>${father}${urdu}<div>${status}</div>${years}${ageStr}${spouseLine}`;
-            });
-
-          gEnter.each(function(d) {
-            const div = d3.select(this).select('.node-content');
-            if (!div.empty()) d._originalHTML = div.html();
+    const nodeGroup = g.selectAll('.node').data(nodes, d=>d.data.id)
+      .join(enter=>{
+        const gEnter = enter.append('g').attr('class','node').attr('transform',d=>`translate(${d.x-boxW/2}, ${d.y})`);
+        gEnter.append('rect').attr('class','node-card').attr('width',boxW).attr('height',boxH).attr('rx',12).attr('ry',12).attr('fill','#ffffffcc').attr('stroke',d=>d.data.is_alive?solidColor:'#999').attr('stroke-width',2.5).attr('cursor','pointer');
+        gEnter.append('rect').attr('width',boxW).attr('height',6).attr('rx',3).attr('fill',d=>d.data.is_alive?solidColor:'#999');
+        gEnter.append('foreignObject').attr('width',boxW-20).attr('height',boxH-60).attr('x',10).attr('y',10)
+          .append('xhtml:div').attr('class','node-content').style('width','100%').style('height','100%').style('display','flex').style('flex-direction','column').style('align-items','center').style('justify-content','center').style('text-align','center').style('font-size',fontSize).style('color',d=>d.data.is_alive?'#333':'#999')
+          .html(d=>{
+            const name=d.data.name, father=d.data.father_name?`<span style="font-size:${small}">(s/o ${d.data.father_name})</span>`:'';
+            const birth=d.data.birth_date||'', death=d.data.death_date||'';
+            const years=birth||death?`<div style="font-size:${small}">${birth}${death?'-'+death:''}</div>`:'';
+            const age=calcAge(d.data.birth_date,d.data.death_date), ageStr=age?`<div style="font-size:${small};color:#FF9800">Age: ${age}</div>`:'';
+            const status=d.data.is_alive?'<span class="alive-badge">Alive</span>':'<span class="deceased-badge">🕌</span>';
+            const urdu=d.data.urdu_name?`<div class="urdu-name">${d.data.urdu_name}</div>`:'';
+            const spouseLine=d.data.spouse_name?`<div class="spouse-sticker">💍 ${d.data.spouse_name}</div>`:'';
+            return `<b>${name}</b>${father}${urdu}<div>${status}</div>${years}${ageStr}${spouseLine}`;
           });
-
-          gEnter.on('click', (event, d) => {
-            event.stopPropagation();
-            if (!canEditDelete) openDetails(d.data);
-          });
-
-          if (canEditDelete) {
-            gEnter.on('dblclick', (event, d) => {
-              event.stopPropagation();
-              const rect = event.currentTarget.getBoundingClientRect();
-              setPopupMember(d.data);
-              setPopupAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + 8 });
-            });
+        gEnter.each(function(d){ const div=d3.select(this).select('.node-content'); if(!div.empty()) d._originalHTML=div.html(); });
+        gEnter.on('click',(event,d)=>{ event.stopPropagation(); if(!canEditDelete) openDetails(d.data); });
+        if(canEditDelete){ gEnter.on('dblclick',(event,d)=>{ event.stopPropagation(); const rect=event.currentTarget.getBoundingClientRect(); setPopupMember(d.data); setPopupAnchor({x:rect.left+rect.width/2, y:rect.bottom+8}); }); }
+        gEnter.each(function(d){
+          const hasChildren=(d.children&&d.children.length>0)||(d._children&&d._children.length>0);
+          if(hasChildren){ const btnGrp=d3.select(this).append('g').attr('class','toggle-btn').attr('transform','translate(6,14)').attr('cursor','pointer').on('click',event=>{ event.stopPropagation(); toggleNode(d.data.id); }); btnGrp.append('circle').attr('r',10).attr('fill','#fff').attr('stroke','#555').attr('stroke-width',1.5); btnGrp.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-size','14px').attr('font-weight','bold').attr('fill','#333').text(d.children?'–':'+'); }
+          if(canAdd){
+            const addCtrl=(symbol,x,color,onClick,title)=>{ const ctrl=d3.select(this).append('g').attr('transform',`translate(${x}, ${boxH-32})`).attr('cursor','pointer').on('click',event=>{ event.stopPropagation(); onClick(d); }); ctrl.append('rect').attr('width',46).attr('height',24).attr('rx',12).attr('fill','#fff').attr('stroke',color).attr('stroke-width',1.4); ctrl.append('text').attr('x',23).attr('y',17).attr('text-anchor','middle').attr('font-size','16px').attr('font-weight',700).attr('fill',color).text(symbol).append('title').text(title); };
+            addCtrl('\u2193',18,solidColor,(node)=>openAddMemberForm('child',node.data),'Child add karein');
+            addCtrl('\u2194',boxW/2-23,'#1565C0',(node)=>openAddMemberForm('sibling',node.data),'Sibling add karein');
+            addCtrl('\u2661',boxW-64,'#C2185B',(node)=>openAddMemberForm('wife',node.data),'Bivi add karein');
           }
+        });
+        return gEnter;
+      },
+      update=>update.transition().duration(500).attr('transform',d=>`translate(${d.x-boxW/2}, ${d.y})`),
+      exit=>exit.remove());
 
-          gEnter.each(function(d) {
-            const hasChildren = (d.children && d.children.length > 0) || (d._children && d._children.length > 0);
-            if (hasChildren) {
-              const btnGroup = d3.select(this).append('g').attr('class', 'toggle-btn').attr('transform', 'translate(6,14)')
-                .attr('cursor', 'pointer').on('click', (event) => { event.stopPropagation(); toggleNode(d.data.id); });
-              btnGroup.append('circle').attr('r', 10).attr('fill', '#fff').attr('stroke', '#555').attr('stroke-width', 1.5);
-              btnGroup.append('text').attr('text-anchor', 'middle').attr('dy', '0.35em').attr('font-size', '14px')
-                .attr('font-weight', 'bold').attr('fill', '#333').text(d.children ? '–' : '+');
-            }
-
-            if (canAdd) {
-              const addControl = (symbol, x, color, onClick, title) => {
-                const ctrl = d3.select(this).append('g')
-                  .attr('transform', `translate(${x}, ${boxH - 32})`)
-                  .attr('cursor', 'pointer')
-                  .on('click', (event) => { event.stopPropagation(); onClick(d); });
-                ctrl.append('rect').attr('width', 46).attr('height', 24).attr('rx', 12).attr('fill', '#fff').attr('stroke', color).attr('stroke-width', 1.4);
-                ctrl.append('text').attr('x', 23).attr('y', 17).attr('text-anchor', 'middle').attr('font-size', '16px').attr('font-weight', 700).attr('fill', color).text(symbol).append('title').text(title);
-              };
-
-              addControl('\u2193', 18, solidColor, (node) => openAddMemberForm('child', node.data), 'Child add karein');
-              addControl('\u2194', boxW / 2 - 23, '#1565C0', (node) => openAddMemberForm('sibling', node.data), 'Sibling add karein');
-              addControl('\u2661', boxW - 64, '#C2185B', (node) => openAddMemberForm('wife', node.data), 'Bivi add karein');
-            }
-          });
-
-          return gEnter;
-        },
-        update => update.transition().duration(500).attr('transform', d => `translate(${d.x - boxW / 2}, ${d.y})`),
-        exit => exit.remove()
-      );
-
-    nodeGroup.on('mouseenter', function(event, d) {
-      const ancIds = getAncestors(d.data.id);
-      g.selectAll('.node rect.node-card')
-        .attr('stroke', n => ancIds.includes(n.data.id) ? '#4fc3f7' : n.data.is_alive ? solidColor : '#999')
-        .attr('fill', n => ancIds.includes(n.data.id) ? '#e1f5fe' : '#ffffffcc');
-
-      if (d.data.photo) {
-        const photoSrc = d.data.photo.startsWith('http') ? d.data.photo : `/uploads/${d.data.photo}`;
-        d3.select(this).select('.node-content')
-          .html(`<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />`);
-      }
-    }).on('mouseleave', function(event, d) {
-      g.selectAll('.node rect.node-card')
-        .attr('stroke', n => n.data.is_alive ? solidColor : '#999')
-        .attr('fill', '#ffffffcc');
-
-      if (d._originalHTML) {
-        d3.select(this).select('.node-content').html(d._originalHTML);
-      }
+    nodeGroup.on('mouseenter',function(event,d){
+      const ancIds=getAncestors(d.data.id);
+      g.selectAll('.node rect.node-card').attr('stroke',n=>ancIds.includes(n.data.id)?'#4fc3f7':n.data.is_alive?solidColor:'#999').attr('fill',n=>ancIds.includes(n.data.id)?'#e1f5fe':'#ffffffcc');
+      if(d.data.photo){ const photoSrc=d.data.photo.startsWith('http')?d.data.photo:`/uploads/${d.data.photo}`; d3.select(this).select('.node-content').html(`<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />`); }
+    }).on('mouseleave',function(event,d){
+      g.selectAll('.node rect.node-card').attr('stroke',n=>n.data.is_alive?solidColor:'#999').attr('fill','#ffffffcc');
+      if(d._originalHTML) d3.select(this).select('.node-content').html(d._originalHTML);
     });
-  }, [canAdd, canEditDelete, openDetails, toggleNode, openAddMemberForm]);
+  }, [canAdd,canEditDelete,openDetails,toggleNode,openAddMemberForm]);
 
-  useEffect(() => {
-    if (members.length > 0) {
-      drawTree(svgRef.current, members, collapsedNodes, true);
-    } else {
-      d3.select(svgRef.current).selectAll('*').remove();
-    }
-  }, [members, collapsedNodes, drawTree]);
+  useEffect(()=>{ if(members.length>0) drawTree(svgRef.current,members,collapsedNodes,true); else d3.select(svgRef.current).selectAll('*').remove(); },[members,collapsedNodes,drawTree]);
 
   // ---------- CRUD handlers ----------
   const handleAddMember = async () => {
@@ -507,15 +357,13 @@ function TreeView({ user }) {
     } catch (err) { alert(err.response?.data?.msg || 'Delete failed'); }
   };
 
-  // ---------- PRINT HANDLER (FIXED: ID then robust name fallback) ----------
+  // ---------- PRINT HANDLER (with Adam/Ali/Malook from whole_data) ----------
   const handlePrint = useCallback(async () => {
     setPrintDialogOpen(false);
     if (!printMember) return;
-
     try {
       const res = await axios.get('/api/whole-data');
       const wholeData = res.data;
-
       const rootNames = {
         adam: 'Hazrat Adam (A.S)',
         ali: 'Hazrat Ali Karamullah Wajahu',
@@ -523,42 +371,18 @@ function TreeView({ user }) {
       };
       const rootName = rootNames[printMode];
       const root = wholeData.find(m => m.name === rootName);
-      if (!root) {
-        alert(`Root "${rootName}" not found in whole_data.`);
-        return;
-      }
+      if (!root) { alert(`Root "${rootName}" not found.`); return; }
 
-      const map = {};
-      wholeData.forEach(m => map[m.id] = m);
-
-      // ---- FIXED: ID then Name fallback ----
+      const map = {}; wholeData.forEach(m => map[m.id] = m);
       let cur = null;
-      if (printMember.id) {
-        cur = wholeData.find(m => m.id === printMember.id);
-      }
+      if (printMember.id) cur = wholeData.find(m => m.id === printMember.id);
       if (!cur) {
-        // Robust normalization: remove "RA", "R.A", extra spaces, lowercase
-        const normalize = (str) => {
-          return str
-            .replace(/r\.a\.?\s*$/i, '') // remove trailing R.A or RA
-            .replace(/\s+/g, ' ')        // collapse spaces
-            .trim()
-            .toLowerCase();
-        };
-        const target = normalize(printMember.name);
-        cur = wholeData.find(m => normalize(m.name) === target);
+        const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+        cur = wholeData.find(m => norm(m.name) === norm(printMember.name));
       }
-
-      // Debug: if still not found, log details
-      if (!cur) {
-        console.warn('Print member not found:', printMember);
-        console.log('Whole data names (first 10):', wholeData.slice(0,10).map(m => m.name));
-        alert(`Selected member "${printMember.name}" (ID: ${printMember.id}) not found in whole_data. Check console for details.`);
-        return;
-      }
+      if (!cur) { alert(`Member "${printMember.name}" not found.`); return; }
 
       const selectedNode = cur;
-
       const path = [];
       let current = selectedNode;
       while (current) {
@@ -568,7 +392,7 @@ function TreeView({ user }) {
         if (!current) break;
       }
       if (path.length === 0 || path[path.length - 1].id !== root.id) {
-        alert(`${printMember.name} is not a descendant of ${rootName}.`);
+        alert(`${printMember.name} is not a descendant of ${root.name}.`);
         return;
       }
       path.reverse();
@@ -620,7 +444,7 @@ function TreeView({ user }) {
 
       const html = `
         <div class="print-page" style="font-family:'Poppins', sans-serif; padding:15px; color:#1f2a1f; font-size:11px;">
-          <h2 style="color:#2E7D32;margin:0 0 5px;font-size:15px;">Lineage from ${rootName}</h2>
+          <h2 style="color:#2E7D32;margin:0 0 5px;font-size:15px;">Lineage from ${root.name}</h2>
           <p style="font-size:11px; line-height:1.6; word-break: break-word; margin:0 0 10px;">${chainStr}</p>
           ${detailsHTML}
           <p style="color:gray; margin-top:12px; font-size:10px;">Generated from unified family records.</p>
@@ -660,7 +484,7 @@ function TreeView({ user }) {
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <div id="print-container" style={{ display: 'none', position: 'absolute', top: 0, left: 0, width: '100%', background: 'white', zIndex: 9999 }}></div>
 
-      {/* Fixed search box at top-left */}
+      {/* Fixed search box */}
       <div style={{ position: 'fixed', top: 10, left: 10, zIndex: 1200, width: 260 }}>
         <Paper elevation={4} style={{ borderRadius: 8 }}>
           <TextField
@@ -700,7 +524,7 @@ function TreeView({ user }) {
         </Paper>
       </div>
 
-      {/* Control bar (zoom buttons, add) */}
+      {/* Control bar */}
       <div className="control-bar" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 8px', background: '#fafafa', borderBottom: '1px solid #ddd' }}>
         <button onClick={zoomOut} title="Zoom Out"><ZoomOutIcon fontSize="inherit" /></button>
         <button onClick={zoomReset} title="Reset Zoom"><CenterFocusStrongIcon fontSize="inherit" /></button>
@@ -817,6 +641,7 @@ function TreeView({ user }) {
         </DialogActions>
       </Dialog>
 
+      {/* Print Dialog with Adam/Ali/Malook */}
       <Dialog open={printDialogOpen} onClose={() => setPrintDialogOpen(false)}>
         <DialogTitle>Print / Download Options</DialogTitle>
         <DialogContent>
