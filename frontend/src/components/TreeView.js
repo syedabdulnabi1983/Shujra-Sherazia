@@ -127,7 +127,7 @@ function TreeView({ user }) {
     setOpen(true);
   }, [members]);
 
-  // ---------- load tree data (NOW FROM /api/tree) ----------
+  // ---------- load tree data ----------
   const loadData = useCallback(async () => {
     try {
       const res = await axios.get('/api/tree');
@@ -196,11 +196,16 @@ function TreeView({ user }) {
     svg.transition().duration(750).call(zoomRef.current.transform, transform);
   }, []);
 
-  // ---------- generation text (for detail popup) ----------
+  // ---------- generation text (FIXED: Malook Shah relative) ----------
   const getGenerationText = useCallback((member) => {
     if (!member || members.length === 0) return 'N/A';
-    const root = members.find(m => !m.parent_id && !m.spouse_id) || members[0];
+
+    // Find Malook Shah as the reference root for Sherazia tree
+    const malook = members.find(m => m.name?.includes('Malook Shah'));
+    const root = malook || (members.find(m => !m.parent_id && !m.spouse_id) || members[0]);
+
     if (member.id === root.id) return '1st Generation';
+
     let count = 0;
     let cur = member;
     while (cur?.parent_id) {
@@ -209,12 +214,13 @@ function TreeView({ user }) {
       if (!cur) break;
       if (cur.id === root.id) break;
     }
-    const gen = count + 1;
+
+    const gen = count + 1; // relative generation from Malook (or root)
     const suffix = gen === 1 ? 'st' : gen === 2 ? 'nd' : gen === 3 ? 'rd' : 'th';
     return `${gen}${suffix} Generation`;
   }, [members]);
 
-  // ---------- D3 tree drawing (unchanged) ----------
+  // ---------- D3 tree drawing ----------
   const drawTree = useCallback((svgNode, data, collapseSet = new Set(), editable = true) => {
     const svg = d3.select(svgNode);
     svg.selectAll('*').remove();
@@ -411,7 +417,6 @@ function TreeView({ user }) {
         .attr('fill', n => ancIds.includes(n.data.id) ? '#e1f5fe' : '#ffffffcc');
 
       if (d.data.photo) {
-        // FIXED: agar photo URL http se shuru hai to seedha use karein, warna /uploads/ lagayein
         const photoSrc = d.data.photo.startsWith('http') ? d.data.photo : `/uploads/${d.data.photo}`;
         d3.select(this).select('.node-content')
           .html(`<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />`);
@@ -489,7 +494,7 @@ function TreeView({ user }) {
     } catch (err) { alert(err.response?.data?.msg || 'Delete failed'); }
   };
 
-  // ---------- PRINT HANDLER (unchanged) ----------
+  // ---------- PRINT HANDLER (FIXED: ID then Name) ----------
   const handlePrint = useCallback(async () => {
     setPrintDialogOpen(false);
     if (!printMember) return;
@@ -513,10 +518,18 @@ function TreeView({ user }) {
       const map = {};
       wholeData.forEach(m => map[m.id] = m);
 
-      const normalize = (str) => str.trim().toLowerCase().replace(/r\.a\s*$|ra\s*$/, '').trim();
-      const selectedNameNormalized = normalize(printMember.name);
+      // ---- FIXED: ID then Name fallback ----
+      let cur = null;
+      if (printMember.id) {
+        cur = wholeData.find(m => m.id === printMember.id);
+      }
+      if (!cur) {
+        const norm = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ').replace(/r\.a\.?\s*$|ra\s*$/, '').trim();
+        const targetName = norm(printMember.name);
+        cur = wholeData.find(m => norm(m.name) === targetName);
+      }
+      // ------------------------------------
 
-      let cur = wholeData.find(m => normalize(m.name) === selectedNameNormalized);
       if (!cur) {
         alert(`Selected member "${printMember.name}" not found in whole_data.`);
         return;
@@ -562,7 +575,6 @@ function TreeView({ user }) {
         unclesCount = wholeData.filter(m => m.parent_id === father.parent_id && m.id !== father.id).length;
       }
 
-      // FIXED: image URL handling
       const photoUrl = selectedNode.photo 
         ? (selectedNode.photo.startsWith('http') ? selectedNode.photo : `/uploads/${selectedNode.photo}`) 
         : null;
@@ -714,7 +726,6 @@ function TreeView({ user }) {
               </table>
               {detailsMember.photo && (
                 <div style={{ textAlign: 'center', marginTop: 10 }}>
-                  {/* FIXED: Cloudinary URL handling */}
                   <img 
                     src={detailsMember.photo.startsWith('http') ? detailsMember.photo : `/uploads/${detailsMember.photo}`} 
                     alt={detailsMember.name} 
