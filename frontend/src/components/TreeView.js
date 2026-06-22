@@ -200,12 +200,21 @@ function TreeView({ user }) {
   const getGenerationText = useCallback((member) => {
     if (!member || members.length === 0) return 'N/A';
 
-    // Find Malook Shah as the reference root for Sherazia tree
+    // Find Malook Shah as the reference root
     const malook = members.find(m => m.name?.includes('Malook Shah'));
     const root = malook || (members.find(m => !m.parent_id && !m.spouse_id) || members[0]);
 
-    if (member.id === root.id) return '1st Generation';
+    // If both have valid generation_number, use subtraction
+    if (member.generation_number != null && root.generation_number != null) {
+      const gen = (member.generation_number - root.generation_number) + 1;
+      if (gen >= 1) {
+        const suffix = gen === 1 ? 'st' : gen === 2 ? 'nd' : gen === 3 ? 'rd' : 'th';
+        return `${gen}${suffix} Generation`;
+      }
+    }
 
+    // Fallback: count parent chain steps
+    if (member.id === root.id) return '1st Generation';
     let count = 0;
     let cur = member;
     while (cur?.parent_id) {
@@ -214,8 +223,7 @@ function TreeView({ user }) {
       if (!cur) break;
       if (cur.id === root.id) break;
     }
-
-    const gen = count + 1; // relative generation from Malook (or root)
+    const gen = count + 1;
     const suffix = gen === 1 ? 'st' : gen === 2 ? 'nd' : gen === 3 ? 'rd' : 'th';
     return `${gen}${suffix} Generation`;
   }, [members]);
