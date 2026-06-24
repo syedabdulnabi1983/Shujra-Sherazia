@@ -357,82 +357,33 @@ function TreeView({ user }) {
     } catch (err) { alert(err.response?.data?.msg || 'Delete failed'); }
   };
 
-  // ---------- PRINT HANDLER (FIXED: ID mapping + robust root matching) ----------
+  // ---------- PRINT HANDLER (FIXED: mergedTree API se lineage) ----------
   const handlePrint = useCallback(async () => {
     setPrintDialogOpen(false);
     if (!printMember) return;
     try {
-      const res = await axios.get('/api/whole-data');
-      const wholeData = res.data;
+      const start = printMode; // 'adam', 'ali', or 'malook'
+      const res = await axios.get(`/api/merged-tree/path?memberId=${printMember.id}&start=${start}`);
+      const data = res.data;
 
-      // Root names
-      const rootNames = {
-        adam: 'Hazrat Adam (A.S)',
-        ali: 'Hazrat Ali Karamullah Wajahu',
-        malook: 'Hazrat Syed Muhammad Malook Shah Sherazi RA',
-      };
-      const rootName = rootNames[printMode];
-      const root = wholeData.find(m => m.name === rootName);
-      if (!root) { alert(`Root "${rootName}" not found.`); return; }
-
-      // ==== ID MAPPING ====
-      let searchId = printMember.id;
-      if (printMember.source === 'tree_nodes') searchId = printMember.id + 100000;
-      else if (printMember.source === 'ali_sherazia') searchId = printMember.id + 50000;
-      // prophets ki id same rehti hai
-
-      let cur = wholeData.find(m => m.id === searchId);
-      if (!cur) {
-        const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
-        cur = wholeData.find(m => norm(m.name) === norm(printMember.name));
-      }
-      if (!cur) { alert(`Member "${printMember.name}" not found.`); return; }
-
-      const selectedNode = cur;
-      const map = {}; wholeData.forEach(m => map[m.id] = m);
-
-      // Path
-      const path = [];
-      let current = selectedNode;
-      while (current) {
-        path.push(current);
-        if (current.id === root.id) break;
-        current = map[current.parent_id];
-        if (!current) break;
-      }
-      if (path.length === 0 || path[path.length - 1].id !== root.id) {
-        alert(`${printMember.name} is not a descendant of ${root.name}.`);
+      const path = data.path;
+      if (!path || path.length === 0) {
+        alert('No lineage found.');
         return;
       }
-      path.reverse();
-
-      const isProphetOrImam = (name, source) => {
-        if (source === 'prophets') return true;
-        const lower = name.toLowerCase();
-        return lower.includes('imam') || (lower.includes('hazrat') && (lower.includes('muhammad') || lower.includes('ali') || lower.includes('hussain') || lower.includes('hasan')));
-      };
 
       const chainStr = path.map((node, idx) => {
-        const gen = printMode === 'adam' ? node.generation_number : (node.generation_number - root.generation_number + 1);
-        const bold = isProphetOrImam(node.name, node.source);
-        return `<span style="font-weight:${bold ? 'bold' : 'normal'}">${gen}. ${node.name}</span>`;
+        const gen = node.generation_number || (idx + 1);
+        return `${gen}. ${node.name}`;
       }).join(' => ');
 
-      const memberId = selectedNode.id;
-      const fatherId = selectedNode.parent_id;
-      const father = fatherId ? wholeData.find(m => m.id === fatherId) : null;
+      const selectedNode = path[path.length - 1];
+      const fatherName = selectedNode.father_name || 'N/A';
       const motherName = selectedNode.mother_name || 'N/A';
-      const spouseName = selectedNode.spouse_name_db || selectedNode.wife_name || 'N/A';
-      const childrenCount = wholeData.filter(m => m.parent_id === memberId).length;
-      const siblings = fatherId ? wholeData.filter(m => m.parent_id === fatherId && m.id !== memberId) : [];
-      const siblingsCount = siblings.length;
-      let unclesCount = 0;
-      if (father && father.parent_id) {
-        unclesCount = wholeData.filter(m => m.parent_id === father.parent_id && m.id !== father.id).length;
-      }
+      const spouseName = selectedNode.wife_name || 'N/A';
 
-      const photoUrl = selectedNode.photo 
-        ? (selectedNode.photo.startsWith('http') ? selectedNode.photo : `/uploads/${selectedNode.photo}`) 
+      const photoUrl = selectedNode.photo
+        ? (selectedNode.photo.startsWith('http') ? selectedNode.photo : `/uploads/${selectedNode.photo}`)
         : null;
 
       const detailsHTML = `
@@ -441,19 +392,16 @@ function TreeView({ user }) {
           ${photoUrl ? `<div style="text-align:center;margin-bottom:8px;"><img src="${photoUrl}" style="max-width:100px;max-height:100px;border-radius:6px;" /></div>` : ''}
           <table style="width:100%; border-collapse: collapse; font-size:11px;">
             <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Name</td><td style="border-bottom:1px solid #ddd;">${selectedNode.name}</td></tr>
-            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Father</td><td style="border-bottom:1px solid #ddd;">${father ? father.name : (selectedNode.father_name || 'N/A')}</td></tr>
+            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Father</td><td style="border-bottom:1px solid #ddd;">${fatherName}</td></tr>
             <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Mother</td><td style="border-bottom:1px solid #ddd;">${motherName}</td></tr>
             <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Spouse</td><td style="border-bottom:1px solid #ddd;">${spouseName}</td></tr>
-            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Children</td><td style="border-bottom:1px solid #ddd;">${childrenCount}</td></tr>
-            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Siblings</td><td style="border-bottom:1px solid #ddd;">${siblingsCount}</td></tr>
-            <tr><td style="padding:5px; font-weight:bold; border-bottom:1px solid #ddd;">Paternal Uncles</td><td style="border-bottom:1px solid #ddd;">${unclesCount}</td></tr>
           </table>
         </div>
       `;
 
       const html = `
         <div class="print-page" style="font-family:'Poppins', sans-serif; padding:15px; color:#1f2a1f; font-size:11px;">
-          <h2 style="color:#2E7D32;margin:0 0 5px;font-size:15px;">Lineage from ${root.name}</h2>
+          <h2 style="color:#2E7D32;margin:0 0 5px;font-size:15px;">Lineage from ${data.label}</h2>
           <p style="font-size:11px; line-height:1.6; word-break: break-word; margin:0 0 10px;">${chainStr}</p>
           ${detailsHTML}
           <p style="color:gray; margin-top:12px; font-size:10px;">Generated from unified family records.</p>
@@ -473,7 +421,7 @@ function TreeView({ user }) {
       }
     } catch (err) {
       console.error('Print lineage error:', err);
-      alert('Failed to load whole data for print.');
+      alert('Failed to load lineage.');
     }
   }, [printMember, printMode]);
 
