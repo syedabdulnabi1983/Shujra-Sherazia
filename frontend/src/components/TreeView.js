@@ -357,13 +357,15 @@ function TreeView({ user }) {
     } catch (err) { alert(err.response?.data?.msg || 'Delete failed'); }
   };
 
-  // ---------- PRINT HANDLER (with Adam/Ali/Malook from whole_data) ----------
+  // ---------- PRINT HANDLER (FIXED: ID mapping + robust root matching) ----------
   const handlePrint = useCallback(async () => {
     setPrintDialogOpen(false);
     if (!printMember) return;
     try {
       const res = await axios.get('/api/whole-data');
       const wholeData = res.data;
+
+      // Root names
       const rootNames = {
         adam: 'Hazrat Adam (A.S)',
         ali: 'Hazrat Ali Karamullah Wajahu',
@@ -373,9 +375,13 @@ function TreeView({ user }) {
       const root = wholeData.find(m => m.name === rootName);
       if (!root) { alert(`Root "${rootName}" not found.`); return; }
 
-      const map = {}; wholeData.forEach(m => map[m.id] = m);
-      let cur = null;
-      if (printMember.id) cur = wholeData.find(m => m.id === printMember.id);
+      // ==== ID MAPPING ====
+      let searchId = printMember.id;
+      if (printMember.source === 'tree_nodes') searchId = printMember.id + 100000;
+      else if (printMember.source === 'ali_sherazia') searchId = printMember.id + 50000;
+      // prophets ki id same rehti hai
+
+      let cur = wholeData.find(m => m.id === searchId);
       if (!cur) {
         const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
         cur = wholeData.find(m => norm(m.name) === norm(printMember.name));
@@ -383,6 +389,9 @@ function TreeView({ user }) {
       if (!cur) { alert(`Member "${printMember.name}" not found.`); return; }
 
       const selectedNode = cur;
+      const map = {}; wholeData.forEach(m => map[m.id] = m);
+
+      // Path
       const path = [];
       let current = selectedNode;
       while (current) {
