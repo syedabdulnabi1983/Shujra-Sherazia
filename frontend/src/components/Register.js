@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 
 const Register = () => {
   const [form, setForm] = useState({
-    name: '', email: '', login_id: '', password: '', re_password: '', secret_code: ''
+    name: '', email: '', login_id: '', password: '', re_password: '', secret_code: '', mobile: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showRePassword, setShowRePassword] = useState(false);
@@ -17,10 +17,7 @@ const Register = () => {
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (form.password !== form.re_password) {
-      setMsg('Passwords do not match');
-      return;
-    }
+    if (form.password !== form.re_password) { setMsg('Passwords do not match'); return; }
     try {
       const res = await axios.post('/api/auth/register', form);
       localStorage.setItem('token', res.data.token);
@@ -42,6 +39,7 @@ const Register = () => {
           <form onSubmit={handleSubmit}>
             <TextField fullWidth label="Full Name" name="name" margin="normal" value={form.name} onChange={handleChange} required />
             <TextField fullWidth label="Email" name="email" type="email" margin="normal" value={form.email} onChange={handleChange} required />
+            <TextField fullWidth label="Mobile Number" name="mobile" type="tel" margin="normal" value={form.mobile} onChange={handleChange} required helperText="e.g. 03001234567" />
             <TextField fullWidth label="Login ID" name="login_id" margin="normal" value={form.login_id} onChange={handleChange} required />
             <TextField fullWidth label="Password" name="password" type={showPassword ? 'text' : 'password'} margin="normal" value={form.password} onChange={handleChange} required
               InputProps={{ endAdornment: <InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)}>{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> }}
